@@ -1,0 +1,338 @@
+{
+  "_comentario": "Configuración del radar. Puedes añadir/quitar fuentes RSS, ajustar pesos y términos sin tocar el código.",
+  "ventana_dias_html": 60,
+  "umbral_relevancia": 3.0,
+  "umbral_prioridad_alta": 8.0,
+  "user_agent": "RadarNormativoTransporte/1.0 (+uso interno; contacto: tu-email@empresa.com)",
+  "boe": {
+    "activo": true,
+    "dias_atras_primera_ejecucion": 30,
+    "dias_atras_max": 15,
+    "secciones": [
+      "1",
+      "3"
+    ],
+    "departamentos_bonus": {
+      "JEFATURA DEL ESTADO": 2.0,
+      "MINISTERIO DE TRANSPORTES Y MOVILIDAD SOSTENIBLE": 3.0,
+      "MINISTERIO DE HACIENDA": 1.0,
+      "MINISTERIO DE TRABAJO Y ECONOMÍA SOCIAL": 1.0,
+      "MINISTERIO DEL INTERIOR": 1.0,
+      "MINISTERIO PARA LA TRANSICIÓN ECOLÓGICA Y EL RETO DEMOGRÁFICO": 0.5,
+      "MINISTERIO DE INCLUSIÓN, SEGURIDAD SOCIAL Y MIGRACIONES": 0.5,
+      "MINISTERIO DE ECONOMÍA, COMERCIO Y EMPRESA": 0.5
+    },
+    "bonus_seccion": {
+      "1": 2.0,
+      "3": 0.0
+    }
+  },
+  "rss": [
+    {
+      "id": "fenadismer",
+      "nombre": "FENADISMER",
+      "tipo": "Asociación",
+      "url": "https://www.fenadismer.es/feed/",
+      "peso": 1.3
+    },
+    {
+      "id": "cetm",
+      "nombre": "CETM",
+      "tipo": "Asociación",
+      "url": "https://www.cetm.es/feed/",
+      "peso": 1.3
+    },
+    {
+      "id": "astic",
+      "nombre": "ASTIC",
+      "tipo": "Asociación",
+      "url": "https://astic.net/feed/",
+      "peso": 1.2
+    },
+    {
+      "id": "uno",
+      "nombre": "UNO Logística",
+      "tipo": "Asociación",
+      "url": "https://unologistica.org/feed/",
+      "peso": 1.1
+    },
+    {
+      "id": "aeat",
+      "nombre": "Agencia Tributaria",
+      "tipo": "Oficial",
+      "url": "https://sede.agenciatributaria.gob.es/Sede/todas-noticias.xml",
+      "peso": 1.2,
+      "generalista": true
+    },
+    {
+      "id": "aeat_iiee",
+      "nombre": "AEAT · Impuestos especiales",
+      "tipo": "Oficial",
+      "url": "https://sede.agenciatributaria.gob.es/Sede/impuestos-especiales-medioambientales/novedades.xml",
+      "peso": 1.2,
+      "generalista": true
+    },
+    {
+      "id": "dgt",
+      "nombre": "Revista DGT",
+      "tipo": "Oficial",
+      "url": "https://revista.dgt.es/es/rss/noticias.xml",
+      "peso": 1.0,
+      "generalista": true
+    },
+    {
+      "id": "transprof",
+      "nombre": "Transporte Profesional",
+      "tipo": "Medio",
+      "url": "https://transporteprofesional.es/ultimas-noticias?format=feed&type=rss",
+      "peso": 1.0
+    },
+    {
+      "id": "todotransporte",
+      "nombre": "TodoTransporte",
+      "tipo": "Medio",
+      "url": "https://www.todotransporte.com/feed/",
+      "peso": 0.9
+    }
+  ],
+  "html": [
+    {
+      "id": "mitms",
+      "nombre": "Ministerio de Transportes (sala de prensa)",
+      "tipo": "Oficial",
+      "url": "https://www.transportes.gob.es/ministerio/comunicacion/sala-prensa",
+      "patron_enlace": "/sala-prensa/",
+      "peso": 1.3
+    }
+  ],
+  "categorias": {
+    "Documentación de transporte": {
+      "color": "#2563eb",
+      "terminos": {
+        "deca": 5,
+        "documento de control": 5,
+        "documento electronico de control": 6,
+        "hoja de ruta": 2,
+        "ecmr": 5,
+        "e-cmr": 5,
+        "carta de porte": 4,
+        "cmr": 2,
+        "efti": 5,
+        "digitalizacion documental": 3
+      }
+    },
+    "Tacógrafo y tiempos de conducción": {
+      "color": "#7c3aed",
+      "terminos": {
+        "tacografo": 5,
+        "tiempos de conduccion": 5,
+        "tiempos de descanso": 4,
+        "descanso semanal": 3,
+        "reglamento 561": 4,
+        "paquete de movilidad": 4,
+        "cabotaje": 3,
+        "desplazamiento de trabajadores": 3,
+        "tarjeta de conductor": 3,
+        "certificado de aptitud profesional": 4
+      }
+    },
+    "Fiscalidad y facturación": {
+      "color": "#059669",
+      "terminos": {
+        "verifactu": 6,
+        "veri*factu": 6,
+        "factura electronica": 5,
+        "facturacion electronica": 5,
+        "gasoleo profesional": 5,
+        "impuesto sobre hidrocarburos": 4,
+        "estimacion objetiva": 3,
+        "calendario del contribuyente": 2,
+        "ticketbai": 4
+      }
+    },
+    "Laboral y PRL": {
+      "color": "#d97706",
+      "terminos": {
+        "registro horario": 5,
+        "registro de jornada": 5,
+        "control horario": 4,
+        "convenio colectivo": 3,
+        "estatuto de los trabajadores": 3,
+        "inspeccion de trabajo": 3,
+        "prevencion de riesgos": 3,
+        "prl": 2,
+        "reduccion de jornada": 3,
+        "salario minimo": 2,
+        "jubilacion anticipada": 3,
+        "conductores profesionales": 2,
+        "cotizacion": 2,
+        "seguridad social": 1,
+        "transporte de mercancias por carretera": 3
+      },
+      "requiere_contexto": true
+    },
+    "Vehículos, tráfico y ZBE": {
+      "color": "#dc2626",
+      "terminos": {
+        "reglamento general de circulacion": 4,
+        "reglamento general de vehiculos": 4,
+        "itv": 3,
+        "zona de bajas emisiones": 4,
+        "zbe": 4,
+        "etiqueta ambiental": 3,
+        "restricciones a la circulacion": 4,
+        "restricciones de trafico": 4,
+        "vehiculos pesados": 2,
+        "masas y dimensiones": 4,
+        "44 toneladas": 4,
+        "megacamion": 3,
+        "duotrailer": 3,
+        "cinturon": 2,
+        "adas": 2,
+        "permiso de conducir": 2,
+        "peaje": 3,
+        "euroviñeta": 4,
+        "eurovineta": 4
+      },
+      "requiere_contexto": true
+    },
+    "Mercado, contratación y sanciones": {
+      "color": "#0891b2",
+      "terminos": {
+        "ley de la cadena del transporte": 5,
+        "cadena de transporte": 3,
+        "lott": 4,
+        "ley de ordenacion de los transportes": 5,
+        "inspeccion de transporte": 4,
+        "regimen sancionador": 4,
+        "morosidad": 3,
+        "plazos de pago": 3,
+        "clausula de revision": 4,
+        "indexacion del combustible": 4,
+        "subcontratacion": 3,
+        "autorizacion de transporte": 4,
+        "tarjeta de transporte": 4,
+        "competencia profesional": 3,
+        "carga y descarga": 3
+      },
+      "requiere_contexto": true
+    },
+    "Ayudas y combustible": {
+      "color": "#ca8a04",
+      "requiere_contexto": true,
+      "terminos": {
+        "ayudas al transporte": 5,
+        "ayuda directa": 3,
+        "ayudas directas": 3,
+        "ayuda extraordinaria": 3,
+        "plan renove": 3,
+        "programa moves": 2,
+        "gasoleo": 3,
+        "carburantes": 2,
+        "combustible": 1,
+        "impuesto sobre hidrocarburos": 2,
+        "plan integral de respuesta": 2,
+        "subvencion": 1
+      }
+    },
+    "Medio ambiente y energía": {
+      "color": "#16a34a",
+      "terminos": {
+        "ets2": 5,
+        "comercio de derechos de emision": 4,
+        "huella de carbono": 3,
+        "emisiones de co2": 3,
+        "ley de movilidad sostenible": 6,
+        "csrd": 3,
+        "informacion de sostenibilidad": 3,
+        "combustibles renovables": 2,
+        "hvo": 2,
+        "euro 7": 4,
+        "plan de movilidad sostenible al trabajo": 4,
+        "co2": 2,
+        "objetivos de co2": 4,
+        "descarbonizacion": 2
+      },
+      "requiere_contexto": true
+    },
+    "Mercancías peligrosas y especiales": {
+      "color": "#be123c",
+      "terminos": {
+        "adr": 4,
+        "mercancias peligrosas": 5,
+        "consejero de seguridad": 4,
+        "atp": 3,
+        "transporte de animales": 3,
+        "mercancias perecederas": 3
+      }
+    }
+  },
+  "senales_obligacion": {
+    "obligatorio": 2,
+    "obligatoria": 2,
+    "obligacion": 2,
+    "entra en vigor": 3,
+    "entrada en vigor": 3,
+    "plazo": 1,
+    "fecha limite": 2,
+    "sancion": 2,
+    "sanciones": 2,
+    "multa": 2,
+    "multas": 2,
+    "infraccion": 2,
+    "inmovilizacion": 2,
+    "deberan": 1,
+    "a partir del dia": 1,
+    "desde el proximo": 2,
+    "sancionar": 2
+  },
+  "terminos_excluir": [
+    "oposiciones",
+    "nombramiento",
+    "cese",
+    "concurso de meritos",
+    "premio",
+    "concurso nacional",
+    "patrocinio",
+    "nuevo modelo de camion",
+    "presenta su nuevo",
+    "pedido de",
+    "entrevista a",
+    "concesion directa de una subvencion",
+    "convenio con la universidad",
+    "adenda",
+    "delegacion de competencias",
+    "se emplaza",
+    "comision mixta",
+    "homologa"
+  ],
+  "contexto_sector": [
+    "transporte por carretera",
+    "transporte de mercancias",
+    "transporte terrestre",
+    "transportista",
+    "transportistas",
+    "empresas de transporte",
+    "logistica",
+    "logisticos",
+    "logistico",
+    "camion",
+    "camiones",
+    "vehiculos pesados",
+    "vehiculo pesado",
+    "conductores profesionales",
+    "conductor profesional",
+    "flota",
+    "flotas",
+    "furgoneta",
+    "furgonetas",
+    "cabotaje",
+    "mercancias",
+    "paqueteria",
+    "mensajeria",
+    "reparto",
+    "gasoleo profesional",
+    "tacografo",
+    "cadena de suministro"
+  ]
+}

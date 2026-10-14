@@ -1,0 +1,126 @@
+{
+  "_comentario": "Plazos clave revisados a mano (verificados a 14/10/2026). El radar los muestra en la línea temporal junto a las fechas que detecta automáticamente en las noticias. Edita, añade o marca como 'vigente' según evolucione.",
+  "plazos": [
+    {
+      "id": "deca",
+      "titulo": "DeCA: documento de control administrativo obligatorio en formato digital",
+      "titulo_corto": "DeCA digital",
+      "fecha": "2026-10-05",
+      "estado": "vigente",
+      "categoria": "Documentación de transporte",
+      "aplica_a": "Transporte público de mercancías por carretera con origen y destino en España (incluido cabotaje). No aplica al internacional, que usa CMR.",
+      "que_hacer": "Emitir el DeCA como PDF con código QR y URL única antes de iniciar cada servicio; el papel ya no vale ante la Inspección. Repartir responsabilidades: el cargador responde de partes, origen/destino, naturaleza y peso; el transportista de los datos de ejecución. Conservar 1 año. Existe una plataforma gratuita del Ministerio (apps.fomento.gob.es/deca).",
+      "norma": "Ley 9/2025 de Movilidad Sostenible (DT 8ª) · Resolución DGTCF 5/6/2026 (BOE 12/6/2026) · Orden TRM/282/2026",
+      "fuente": "https://ga-p.com/publicaciones/guia-para-no-perderte-con-el-nuevo-deca/"
+    },
+    {
+      "id": "cinturon",
+      "titulo": "Fin de la exención del cinturón para repartidores en carga y descarga",
+      "titulo_corto": "Cinturón en reparto",
+      "fecha": "2026-10-01",
+      "estado": "vigente",
+      "categoria": "Vehículos, tráfico y ZBE",
+      "aplica_a": "Reparto urbano / última milla.",
+      "que_hacer": "Informar a los conductores de reparto: deben llevar el cinturón también entre paradas de carga y descarga.",
+      "norma": "Modificación del Reglamento General de Circulación",
+      "fuente": "https://www.fenadismer.es/desde-octubre-se-elimina-injustificadamente-la-exencion-del-cinturon-para-los-repartidores-urbanos/"
+    },
+    {
+      "id": "tacografo_furgonetas",
+      "titulo": "Tacógrafo inteligente G2V2 en furgonetas de 2,5 a 3,5 t (internacional y cabotaje)",
+      "titulo_corto": "Tacógrafo furgonetas",
+      "fecha": "2026-07-01",
+      "estado": "vigente",
+      "categoria": "Tacógrafo y tiempos de conducción",
+      "aplica_a": "Vehículos o conjuntos de más de 2,5 t y hasta 3,5 t MMA en transporte internacional o cabotaje. Exento el transporte solo nacional y ciertos usos por cuenta propia.",
+      "que_hacer": "Revisar la flota ligera que cruce fronteras: instalar tacógrafo inteligente G2V2, tarjetas de conductor y aplicar tiempos de conducción y descanso del Reglamento 561/2006.",
+      "norma": "Paquete de Movilidad UE · Reglamento (CE) 561/2006",
+      "fuente": "https://trans.info/es/tacografo-en-furgonetas-que-cambia-en-la-ue-desde-julio-2026-y-quien-queda-fuera-480017"
+    },
+    {
+      "id": "ayudas_gasoleo",
+      "titulo": "Ayudas directas por el gasóleo (RDL 25/2026): plazo de solicitud para vehículos sin gasóleo profesional",
+      "titulo_corto": "Fin ayudas gasóleo",
+      "fecha": "2026-12-31",
+      "fecha_inicio": "2026-11-01",
+      "estado": "proximo",
+      "categoria": "Ayudas y combustible",
+      "aplica_a": "Titulares de vehículos que no pueden acogerse a la devolución del gasóleo profesional.",
+      "que_hacer": "Solicitar la ayuda en la sede de la AEAT entre el 1/11 y el 31/12/2026 indicando la cuenta bancaria. Los beneficiarios del gasóleo profesional reciben la ayuda por litro de octubre a diciembre.",
+      "norma": "Real Decreto-ley 25/2026 (BOE 30/9/2026)",
+      "fuente": "https://www.cetm.es/asi-es-el-tercer-paquete-de-ayudas-al-transporte-por-la-guerra-de-iran/"
+    },
+    {
+      "id": "verifactu_sociedades",
+      "titulo": "Verifactu obligatorio para sociedades (Impuesto sobre Sociedades)",
+      "titulo_corto": "Verifactu sociedades",
+      "fecha": "2027-01-01",
+      "estado": "proximo",
+      "categoria": "Fiscalidad y facturación",
+      "aplica_a": "SL, SA, cooperativas y demás contribuyentes del IS que facturen con software (no acogidos al SII).",
+      "que_hacer": "Confirmar que el ERP/programa de facturación cumple el reglamento Verifactu (integridad, trazabilidad, QR en factura) antes del 1/1/2027.",
+      "norma": "RD 1007/2023 · Real Decreto-ley 15/2025",
+      "fuente": "https://www.infoautonomos.com/blog/verifactu-cuando-es-obligatorio-a-quien-afecta/"
+    },
+    {
+      "id": "verifactu_autonomos",
+      "titulo": "Verifactu obligatorio para autónomos y resto de obligados",
+      "titulo_corto": "Verifactu autónomos",
+      "fecha": "2027-07-01",
+      "estado": "proximo",
+      "categoria": "Fiscalidad y facturación",
+      "aplica_a": "Autónomos en IRPF, comunidades de bienes y demás obligados no sujetos al IS. Afecta a transportistas autónomos subcontratados.",
+      "que_hacer": "Avisar a colaboradores autónomos: sus facturas deberán emitirse con software adaptado desde el 1/7/2027.",
+      "norma": "Real Decreto-ley 15/2025",
+      "fuente": "https://quaderno.io/es/articulos/facturacion-electronica/verifactu-obligatorio-quien/"
+    },
+    {
+      "id": "efti",
+      "titulo": "eFTI: las autoridades de la UE deben aceptar la información de transporte en formato electrónico",
+      "titulo_corto": "eFTI en la UE",
+      "fecha": "2027-07-09",
+      "estado": "proximo",
+      "categoria": "Documentación de transporte",
+      "aplica_a": "Transporte de mercancías en la UE (incluido internacional) a través de plataformas eFTI certificadas.",
+      "que_hacer": "Valorar migrar a eCMR / plataforma eFTI certificada. Si la información se gestiona vía eFTI, no hace falta presentar el DeCA en el formato de la Resolución española.",
+      "norma": "Reglamento (UE) 2020/1056",
+      "fuente": "https://trans.info/es/ecmr-en-2026-transportistas-deben-actuar-antes-de-que-termine-la-era-del-papel-434870"
+    },
+    {
+      "id": "factura_b2b_grandes",
+      "titulo": "Factura electrónica B2B obligatoria (empresas con operaciones > 8 M€)",
+      "titulo_corto": "Factura-e B2B >8 M€",
+      "fecha": "2027-10-06",
+      "estado": "proximo",
+      "categoria": "Fiscalidad y facturación",
+      "aplica_a": "Empresarios y profesionales con volumen de operaciones superior a 8 millones de euros.",
+      "que_hacer": "Preparar la emisión y recepción de facturas electrónicas estructuradas e informar de su estado; revisar integración con clientes y proveedores.",
+      "norma": "Ley Crea y Crece · RD 238/2026 · Orden HAC/1028/2026 (BOE 5/10/2026)",
+      "fuente": "https://www.garrigues.com/es_ES/noticia/comienza-computo-plazos-aplicacion-factura-electronica-obligatoria-empresarios"
+    },
+    {
+      "id": "factura_b2b_resto",
+      "titulo": "Factura electrónica B2B obligatoria (resto de empresas y autónomos)",
+      "titulo_corto": "Factura-e B2B resto",
+      "fecha": "2028-10-06",
+      "estado": "proximo",
+      "categoria": "Fiscalidad y facturación",
+      "aplica_a": "Resto de empresarios y profesionales.",
+      "que_hacer": "Planificar la adaptación del software de facturación con margen.",
+      "norma": "RD 238/2026 · Orden HAC/1028/2026",
+      "fuente": "https://www.garrigues.com/es_ES/noticia/comienza-computo-plazos-aplicacion-factura-electronica-obligatoria-empresarios"
+    },
+    {
+      "id": "registro_horario",
+      "titulo": "Registro horario exclusivamente digital (Real Decreto en tramitación)",
+      "titulo_corto": "Registro horario digital",
+      "fecha": null,
+      "estado": "pendiente",
+      "categoria": "Laboral y PRL",
+      "aplica_a": "Todas las empresas. Hoy sigue vigente la obligación de registro diario de jornada del RDL 8/2019 (art. 34.9 ET).",
+      "que_hacer": "Sin fecha en BOE. El Consejo de Estado objetó el borrador en marzo de 2026. Conviene ir migrando a un sistema digital, trazable y con acceso remoto para Inspección.",
+      "norma": "Borrador RD Ministerio de Trabajo · RDL 8/2019",
+      "fuente": "https://protecciondatos-lopd.com/empresas/?p=43831"
+    }
+  ]
+}

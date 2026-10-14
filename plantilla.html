@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar normativo de transporte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fondo:#f3f5f6; --papel:#ffffff; --asfalto:#1e2a32; --texto:#26333c; --suave:#5d6b75; --linea:#d5dce1;
+  --senal:#f2b705; --senal-texto:#4a3800; --azul:#1747c4; --rojo:#b42318; --verde:#17703c;
+  --carril:#2b3740; --carril-linea:#e9edf0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --fondo:#141b20; --papel:#1b242b; --asfalto:#eef2f4; --texto:#dbe3e8; --suave:#97a5ae; --linea:#2e3a43;
+    --senal:#f5c22b; --senal-texto:#2b2100; --azul:#7ea2ff; --rojo:#ff8a7a; --verde:#5fd08f;
+    --carril:#0d1316; --carril-linea:#55616a;
+  }
+}
+:root[data-theme="dark"]{
+  --fondo:#141b20; --papel:#1b242b; --asfalto:#eef2f4; --texto:#dbe3e8; --suave:#97a5ae; --linea:#2e3a43;
+  --senal:#f5c22b; --senal-texto:#2b2100; --azul:#7ea2ff; --rojo:#ff8a7a; --verde:#5fd08f;
+  --carril:#0d1316; --carril-linea:#55616a;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.55 "Barlow",system-ui,sans-serif}
+a{color:var(--azul)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--senal);outline-offset:2px}
+.envoltura{max-width:1120px;margin:0 auto;padding:0 16px}
+h1,h2,h3{font-family:"Barlow Condensed","Barlow",sans-serif;color:var(--asfalto);line-height:1.1;margin:0}
+h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.75rem;font-weight:600;margin-bottom:.35rem}
+h3{font-size:1.2rem;font-weight:600}
+p{margin:.3rem 0}
+
+/* Cabecera */
+header{padding:36px 0 20px}
+.cabecera{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between}
+.sub{color:var(--suave);max-width:60ch}
+.resumen{display:flex;gap:28px;flex-wrap:wrap}
+.resumen div{min-width:80px}
+.resumen b{display:block;font:600 2rem/1 "Barlow Condensed",sans-serif;color:var(--asfalto)}
+.resumen span{color:var(--suave);font-size:.9rem}
+.resumen .aviso b{color:var(--rojo)}
+
+/* Carretera de plazos */
+section{padding:22px 0}
+.carretera-marco{background:var(--carril);border-radius:6px;padding:22px 0 14px;margin-top:14px;overflow-x:auto;scrollbar-width:thin}
+.carretera{position:relative;height:232px;min-width:980px;margin:0 20px}
+.asfalto{position:absolute;left:0;right:0;top:114px;height:4px;background:repeating-linear-gradient(90deg,var(--carril-linea) 0 26px,transparent 26px 44px)}
+.hito{position:absolute;width:150px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;border:0;background:none;padding:0;font:inherit;cursor:pointer}
+.hito.arriba{top:0;height:116px}
+.hito.abajo{top:114px;height:118px;flex-direction:column-reverse}
+.hito .placa{display:block;width:100%;background:var(--azul);color:#fff;border:2px solid #fff;border-radius:5px;padding:5px 6px 6px;text-align:center}
+.hito .placa b{display:block;font:600 .9rem/1.15 "Barlow Condensed",sans-serif}
+.hito .placa small{display:block;font:500 .78rem/1.2 "Barlow",sans-serif;opacity:.9;margin-top:2px}
+.hito.vigente .placa{background:#4a5761}
+.hito.urgente .placa{background:var(--senal);color:var(--senal-texto)}
+.hito .poste{flex:1;width:2px;background:#c9d2d8}
+.hito .punto{width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--carril);flex:none}
+.hito:hover .placa,.hito:focus-visible .placa{border-color:var(--senal)}
+.hoy{position:absolute;top:96px;height:40px;border-left:3px solid var(--senal)}
+.hoy span{position:absolute;top:44px;left:-16px;font:700 .9rem "Barlow Condensed",sans-serif;color:var(--senal)}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:.88rem;color:var(--suave)}
+.leyenda i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+.plazos{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:18px}
+.plazo{background:var(--papel);border:1px solid var(--linea);border-top:4px solid var(--azul);border-radius:4px;padding:14px 16px}
+.plazo.vigente{border-top-color:#5b6870}
+.plazo.urgente{border-top-color:var(--senal)}
+.plazo.pendiente{border-top-style:dashed;border-top-color:var(--suave)}
+.plazo.foco{box-shadow:0 0 0 3px var(--senal)}
+.plazo .fecha{font:600 1rem "Barlow Condensed",sans-serif;color:var(--suave)}
+.plazo .fecha strong{color:var(--asfalto)}
+.plazo dl{margin:.6rem 0 .2rem;font-size:.93rem}
+.plazo dt{font-weight:600;color:var(--asfalto);margin-top:.4rem}
+.plazo dd{margin:0}
+.plazo .norma{font-size:.85rem;color:var(--suave);margin-top:.5rem}
+.auto{margin-top:20px}
+.auto summary{cursor:pointer;font-weight:600;color:var(--asfalto)}
+.auto ul{padding-left:1.1rem}
+.auto li{margin:.35rem 0}
+
+/* Novedades */
+.filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0 6px}
+.filtros input[type=search]{flex:1 1 240px;min-width:0;padding:9px 12px;border:1px solid var(--linea);border-radius:4px;background:var(--papel);color:var(--texto);font:inherit}
+.filtros select{padding:9px 10px;border:1px solid var(--linea);border-radius:4px;background:var(--papel);color:var(--texto);font:inherit}
+.filtros label{display:flex;gap:6px;align-items:center;font-size:.95rem;white-space:nowrap}
+.cats{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.cat{border:1px solid var(--linea);background:var(--papel);color:var(--texto);border-radius:999px;padding:4px 11px;font:500 .88rem "Barlow",sans-serif;cursor:pointer}
+.cat i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.cat[aria-pressed="true"]{background:var(--asfalto);color:var(--fondo);border-color:var(--asfalto)}
+.contador{color:var(--suave);font-size:.9rem;margin:4px 0 8px}
+.lista{list-style:none;margin:0;padding:0;background:var(--papel);border:1px solid var(--linea);border-radius:4px}
+.nota{display:grid;grid-template-columns:6px 1fr;gap:0 14px;padding:14px 16px 14px 0;border-bottom:1px solid var(--linea)}
+.nota:last-child{border-bottom:0}
+.nota .barra{border-radius:0 3px 3px 0;background:var(--linea)}
+.nota.alta .barra{background:var(--rojo)}
+.nota.media .barra{background:var(--azul);opacity:.55}
+.meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.86rem;color:var(--suave);margin-bottom:3px}
+.meta .etq{font-weight:600}
+.nuevo{background:var(--senal);color:var(--senal-texto);font-weight:600;border-radius:3px;padding:0 6px}
+.prio-alta{color:var(--rojo);font-weight:600}
+.nota h3{font:600 1.12rem/1.3 "Barlow",sans-serif;margin:2px 0}
+.nota h3 a{color:var(--asfalto);text-decoration:none}
+.nota h3 a:hover{text-decoration:underline}
+.nota p{color:var(--texto);font-size:.95rem;max-width:80ch}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font-size:.8rem;border:1px solid var(--linea);border-radius:3px;padding:1px 7px;color:var(--suave)}
+.chip.fecha{border-color:var(--senal);color:var(--asfalto)}
+.vacio{padding:28px 18px;color:var(--suave)}
+.mas{display:block;margin:12px auto 0;padding:9px 18px;border:1px solid var(--linea);background:var(--papel);color:var(--asfalto);border-radius:4px;font:600 .95rem "Barlow",sans-serif;cursor:pointer}
+
+/* Fuentes */
+table{width:100%;border-collapse:collapse;background:var(--papel);border:1px solid var(--linea);font-size:.93rem}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--linea);vertical-align:top}
+th{font-weight:600;color:var(--asfalto)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.ok{color:var(--verde);font-weight:600}.ko{color:var(--rojo);font-weight:600}
+.tabla{overflow-x:auto}
+footer{padding:26px 0 40px;color:var(--suave);font-size:.88rem}
+.tema{border:1px solid var(--linea);background:var(--papel);color:var(--texto);border-radius:4px;padding:6px 10px;font:inherit;cursor:pointer}
+@media (max-width:640px){
+  header{padding-top:22px}
+  .resumen{gap:18px}
+  .nota{padding-right:12px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .plazo.foco{transition:box-shadow .3s}
+}
+</style>
+</head>
+<body>
+<header class="envoltura">
+  <div class="cabecera">
+    <div>
+      <h1>Radar normativo de transporte</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="resumen" id="resumen"></div>
+  </div>
+</header>
+
+<main class="envoltura">
+  <section aria-labelledby="t-plazos">
+    <h2 id="t-plazos">Plazos en la carretera</h2>
+    <p class="sub">Obligaciones con fecha que afectan a la operativa. Pulsa una señal para ver qué hay que hacer.</p>
+    <div class="carretera-marco"><div class="carretera" id="carretera"></div></div>
+    <div class="leyenda">
+      <span><i style="background:#3f4c55"></i>Ya en vigor</span>
+      <span><i style="background:var(--senal)"></i>En menos de 90 días</span>
+      <span><i style="background:var(--azul)"></i>Más adelante</span>
+      <span><i style="border:2px dashed var(--suave)"></i>Sin fecha (en tramitación)</span>
+    </div>
+    <div class="plazos" id="plazos"></div>
+    <details class="auto" id="auto"></details>
+  </section>
+
+  <section aria-labelledby="t-nov">
+    <h2 id="t-nov">Novedades</h2>
+    <div class="filtros">
+      <input type="search" id="q" placeholder="Buscar: DeCA, tacógrafo, Verifactu…" aria-label="Buscar en novedades">
+      <select id="fuente" aria-label="Filtrar por fuente"><option value="">Todas las fuentes</option></select>
+      <label><input type="checkbox" id="soloAlta"> Solo prioridad alta</label>
+      <label><input type="checkbox" id="soloNuevo"> Solo nuevas</label>
+    </div>
+    <div class="cats" id="cats" role="group" aria-label="Filtrar por tema"></div>
+    <p class="contador" id="contador" aria-live="polite"></p>
+    <ul class="lista" id="lista"></ul>
+    <button class="mas" id="mas" type="button">Mostrar más</button>
+  </section>
+
+  <section aria-labelledby="t-fuentes">
+    <h2 id="t-fuentes">Estado de las fuentes</h2>
+    <p class="sub">Resultado de la última actualización. Si una fuente falla varias veces seguidas, revisa su URL en fuentes.json.</p>
+    <div class="tabla"><table><thead><tr><th>Fuente</th><th>Estado</th><th>Recibidas</th><th>Relevantes</th><th>Detalle</th></tr></thead><tbody id="tfuentes"></tbody></table></div>
+  </section>
+</main>
+
+<footer class="envoltura">
+  <p>Herramienta de vigilancia informativa. No sustituye el asesoramiento jurídico: antes de actuar, comprueba la norma en el BOE o con tu asesoría.</p>
+  <p><button class="tema" id="tema" type="button">Cambiar tema claro/oscuro</button></p>
+</footer>
+
+<script>
+const D = /*__DATOS__*/null;
+(function(){
+  if(!D){document.body.insertAdjacentHTML('afterbegin','<p style="padding:20px">Sin datos: ejecuta radar_normativo.py</p>');return;}
+  const $ = s => document.querySelector(s);
+  const el = (tag, attrs={}, ...hijos) => { const e=document.createElement(tag);
+    for(const [k,v] of Object.entries(attrs)){ if(k==='class') e.className=v; else if(k==='text') e.textContent=v; else e.setAttribute(k,v); }
+    hijos.flat().forEach(h=>{ if(h==null) return; e.append(h.nodeType?h:document.createTextNode(h)); }); return e; };
+  const HOY = new Date(D.hoy+'T00:00:00');
+  const fmt = iso => iso ? new Date(iso+'T00:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}) : 'Sin fecha';
+  const dias = iso => Math.round((new Date(iso+'T00:00:00') - HOY)/86400000);
+  const cuenta = n => n===0 ? 'hoy' : n>0 ? `en ${n} día${n===1?'':'s'}` : `hace ${-n} día${n===-1?'':'s'}`;
+
+  // Tema
+  try{ const t=localStorage.getItem('radar-tema'); if(t) document.documentElement.dataset.theme=t; }catch(e){}
+  $('#tema').onclick=()=>{ const oscuro = document.documentElement.dataset.theme ? document.documentElement.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    const n = oscuro?'light':'dark'; document.documentElement.dataset.theme=n; try{localStorage.setItem('radar-tema',n);}catch(e){} };
+
+  // Cabecera
+  const generado = new Date(D.generado);
+  $('#sub').textContent = `Actualizado el ${generado.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})} a las ${generado.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}. Novedades de los últimos ${D.ventana_dias} días en BOE, Agencia Tributaria, DGT, Ministerio de Transportes, asociaciones y prensa del sector.`;
+  const nuevas = D.noticias.filter(n=>n.nuevo).length;
+  const altas = D.noticias.filter(n=>n.prioridad==='alta').length;
+  const prox = D.plazos.filter(p=>p.fecha && dias(p.fecha)>=0 && dias(p.fecha)<=90).length;
+  const fOk = D.fuentes.filter(f=>f.ok).length;
+  const r = $('#resumen');
+  [[nuevas,'nuevas en la última revisión',''],[altas,'prioridad alta',''],[prox,'plazos en 90 días',prox?'aviso':''],[`${fOk}/${D.fuentes.length}`,'fuentes al día', fOk<D.fuentes.length?'aviso':'']]
+    .forEach(([v,t,c])=>r.append(el('div',{class:c},el('b',{text:String(v)}),el('span',{text:t}))));
+
+  // Plazos: estado calculado
+  const plazos = D.plazos.map(p=>{
+    let clase = 'pendiente';
+    if(p.fecha){ const d=dias(p.fecha); clase = d<0 ? 'vigente' : d<=90 ? 'urgente' : 'proximo'; }
+    if(p.fecha_inicio && dias(p.fecha_inicio)<=0 && p.fecha && dias(p.fecha)>=0) clase='urgente';
+    return {...p, clase};
+  }).sort((a,b)=> (a.fecha||'9999') < (b.fecha||'9999') ? -1 : 1);
+
+  // Carretera: escala raíz cuadrada (más espacio a lo cercano) y dos carriles alternos sin solapes
+  const conFecha = plazos.filter(p=>p.fecha);
+  const ini = new Date(HOY); ini.setDate(ini.getDate()-120);
+  const ultimo = conFecha.length ? new Date(conFecha[conFecha.length-1].fecha+'T00:00:00') : new Date(HOY.getTime()+365*864e5);
+  const fin = new Date(ultimo.getTime()+30*864e5);
+  const carr = $('#carretera');
+  let intentos=0;
+  function pintaCarretera(){
+    carr.replaceChildren(el('div',{class:'asfalto'}));
+    const ancho = carr.clientWidth, MARGEN = 78, SEP = 160;
+    const px = d => MARGEN + Math.sqrt(Math.max(0,(d-ini)/(fin-ini))) * (ancho - 2*MARGEN);
+    carr.append(el('div',{class:'hoy',style:`left:${px(HOY)}px`},el('span',{text:'Hoy'})));
+    const ultimoX = {arriba:-1e9, abajo:-1e9};
+    conFecha.forEach((p,i)=>{
+      const d = dias(p.fecha);
+      const ideal = px(new Date(p.fecha+'T00:00:00'));
+      // carril con más hueco; si ninguno cabe, se desplaza a la derecha
+      const carril = (ideal-ultimoX.arriba) >= (ideal-ultimoX.abajo) ? 'arriba' : 'abajo';
+      const x = Math.max(ideal, ultimoX[carril] + SEP);
+      ultimoX[carril] = x;
+      const b = el('button',{class:`hito ${carril} ${p.clase}`,style:`left:${x}px`,type:'button','aria-label':`${p.titulo}, ${fmt(p.fecha)}`},
+        el('span',{class:'placa'}, el('b',{text:p.titulo_corto||p.titulo}), el('small',{text:`${fmt(p.fecha)}, ${d<0?'en vigor':cuenta(d)}`})),
+        el('span',{class:'poste'}), el('span',{class:'punto'}));
+      b.onclick=()=>{ const c=document.getElementById('plazo-'+p.id); c.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'}); c.classList.add('foco'); setTimeout(()=>c.classList.remove('foco'),1800); };
+      carr.append(b);
+    });
+    const necesario = Math.max(...Object.values(ultimoX)) + 95;
+    if(necesario > ancho && intentos++ < 6){ carr.style.minWidth = Math.ceil(necesario+40)+'px'; requestAnimationFrame(pintaCarretera); }
+  }
+  pintaCarretera();
+  // en pantallas estrechas, arranca la carretera centrada en "hoy"
+  requestAnimationFrame(()=>{ const m=carr.parentElement, h=carr.querySelector('.hoy'); if(h && m.scrollWidth>m.clientWidth) m.scrollLeft = Math.max(0, h.offsetLeft - m.clientWidth*0.3); });
+  addEventListener('resize', ()=>{ carr.style.minWidth=''; intentos=0; pintaCarretera(); });
+
+  const cont = $('#plazos');
+  const ordenClase = {urgente:0, proximo:1, pendiente:2, vigente:3};
+  [...plazos].sort((a,b)=> (ordenClase[a.clase]-ordenClase[b.clase]) || ((a.fecha||'9999')<(b.fecha||'9999')?-1:1)).forEach(p=>{
+    const d = p.fecha ? dias(p.fecha) : null;
+    const estado = !p.fecha ? 'Sin fecha oficial' : d<0 ? `En vigor desde ${fmt(p.fecha)}` : `${fmt(p.fecha)}, ${cuenta(d)}`;
+    const inicio = p.fecha_inicio ? ` (abre el ${fmt(p.fecha_inicio)})` : '';
+    cont.append(el('article',{class:`plazo ${p.clase}`,id:'plazo-'+p.id},
+      el('p',{class:'fecha'}, el('strong',{text:estado}), inicio),
+      el('h3',{text:p.titulo}),
+      el('dl',{}, el('dt',{text:'A quién afecta'}), el('dd',{text:p.aplica_a||''}),
+                   el('dt',{text:'Qué hacer'}), el('dd',{text:p.que_hacer||''})),
+      el('p',{class:'norma'}, p.norma||'', p.fuente? [' — ', el('a',{href:p.fuente,target:'_blank',rel:'noopener',text:'fuente'})]:null)));
+  });
+
+  // Fechas detectadas automáticamente en noticias de prioridad alta
+  const auto = [];
+  D.noticias.filter(n=>n.prioridad==='alta').forEach(n=>(n.fechas_clave||[]).forEach(f=>{ if(dias(f.fecha)>=0) auto.push({...f,n}); }));
+  auto.sort((a,b)=>a.fecha<b.fecha?-1:1);
+  const det = $('#auto');
+  if(auto.length){
+    det.append(el('summary',{text:`${auto.length} fecha${auto.length===1?'':'s'} futura${auto.length===1?'':'s'} detectada${auto.length===1?'':'s'} en noticias recientes (verificar antes de añadir a plazos.json)`}));
+    det.append(el('ul',{}, auto.slice(0,25).map(a=>el('li',{}, el('strong',{text:fmt(a.fecha)}),` (${cuenta(dias(a.fecha))}): «${a.contexto}» `, el('a',{href:a.n.url,target:'_blank',rel:'noopener',text:a.n.fuente})))));
+  } else det.remove();
+
+  // Novedades
+  const cats = [...new Set(D.noticias.map(n=>n.categoria))].sort();
+  const activos = new Set();
+  const cbox = $('#cats');
+  cats.forEach(c=>{
+    const n = D.noticias.filter(x=>x.categoria===c).length;
+    const b = el('button',{class:'cat',type:'button','aria-pressed':'false'}, el('i',{style:`background:${D.colores[c]||'#8a96a0'}`}), `${c} (${n})`);
+    b.onclick=()=>{ activos.has(c)?activos.delete(c):activos.add(c); b.setAttribute('aria-pressed',activos.has(c)); pagina=1; pinta(); };
+    cbox.append(b);
+  });
+  [...new Set(D.noticias.map(n=>n.fuente))].sort().forEach(f=>$('#fuente').append(el('option',{value:f,text:f})));
+
+  const norm = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  let pagina = 1; const POR_PAGINA = 40;
+  function pinta(){
+    const q = norm($('#q').value.trim()), fu=$('#fuente').value, alta=$('#soloAlta').checked, nue=$('#soloNuevo').checked;
+    const res = D.noticias.filter(n=>
+      (!activos.size || activos.has(n.categoria)) && (!fu || n.fuente===fu) &&
+      (!alta || n.prioridad==='alta') && (!nue || n.nuevo) &&
+      (!q || norm(n.titulo+' '+n.resumen+' '+n.categoria).includes(q)));
+    const ul = $('#lista'); ul.replaceChildren();
+    $('#contador').textContent = `${res.length} novedad${res.length===1?'':'es'}`;
+    if(!res.length){ ul.append(el('li',{class:'vacio',text:'No hay novedades con estos filtros. Quita algún filtro o amplía la búsqueda.'})); $('#mas').hidden=true; return; }
+    res.slice(0,pagina*POR_PAGINA).forEach(n=>{
+      ul.append(el('li',{class:`nota ${n.prioridad}`},
+        el('span',{class:'barra','aria-hidden':'true'}),
+        el('div',{},
+          el('div',{class:'meta'},
+            n.nuevo? el('span',{class:'nuevo',text:'Nueva'}):null,
+            n.prioridad==='alta'? el('span',{class:'prio-alta',text:'Prioridad alta'}):null,
+            el('span',{class:'etq',style:`color:${D.colores[n.categoria]||'inherit'}`,text:n.categoria}),
+            el('span',{text:n.fuente}),
+            el('span',{text:fmt(n.fecha_pub||(n.primera_vez||'').slice(0,10))})),
+          el('h3',{}, el('a',{href:n.url,target:'_blank',rel:'noopener',text:n.titulo})),
+          n.resumen? el('p',{text:n.resumen}):null,
+          (n.senales.length||n.fechas_clave.length)? el('div',{class:'chips'},
+            n.fechas_clave.map(f=>el('span',{class:'chip fecha',text:`Fecha citada: ${fmt(f.fecha)}`})),
+            n.senales.map(s=>el('span',{class:'chip',text:s}))) : null)));
+    });
+    $('#mas').hidden = res.length <= pagina*POR_PAGINA;
+  }
+  ['#q','#fuente','#soloAlta','#soloNuevo'].forEach(s=>$(s).addEventListener('input',()=>{pagina=1;pinta();}));
+  $('#mas').onclick=()=>{pagina++;pinta();};
+  pinta();
+
+  // Fuentes
+  const tb = $('#tfuentes');
+  if(!D.fuentes.length) tb.append(el('tr',{},el('td',{colspan:'5',text:'Aún no hay ejecuciones registradas.'})));
+  D.fuentes.forEach(f=>tb.append(el('tr',{},
+    el('td',{text:f.fuente}), el('td',{class:f.ok?'ok':'ko',text:f.ok?'Correcta':'Error'}),
+    el('td',{class:'num',text:String(f.recibidas)}), el('td',{class:'num',text:String(f.relevantes)}),
+    el('td',{text:f.error||`${f.segundos} s`}))));
+})();
+</script>
+</body>
+</html>

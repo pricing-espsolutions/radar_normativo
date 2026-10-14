@@ -1,0 +1,40 @@
+name: Radar normativo
+
+on:
+  schedule:
+    - cron: "15 5 * * 1-5"   # lunes a viernes, 05:15 UTC (07:15 en Madrid en horario de verano)
+  workflow_dispatch: {}       # botón "Run workflow" para lanzarlo a mano
+
+permissions:
+  contents: write
+
+concurrency:
+  group: radar-normativo
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar radar
+        env:
+          RADAR_WEBHOOK_URL: ${{ secrets.RADAR_WEBHOOK_URL }}   # opcional (Teams/Slack/Google Chat)
+        run: python radar_normativo.py
+
+      - name: Guardar HTML e histórico
+        run: |
+          git config user.name  "radar-bot"
+          git config user.email "radar-bot@users.noreply.github.com"
+          git add docs/index.html data/radar.sqlite
+          git diff --cached --quiet || git commit -m "Radar normativo $(date +%F)"
+          git push
