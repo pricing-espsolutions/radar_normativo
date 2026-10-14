@@ -3,7 +3,7 @@
   "ventana_dias_html": 60,
   "umbral_relevancia": 3.0,
   "umbral_prioridad_alta": 8.0,
-  "user_agent": "RadarNormativoTransporte/1.0 (+uso interno; contacto: tu-email@empresa.com)",
+  "user_agent": "Mozilla/5.0 (compatible; RadarNormativoTransporte/1.0)",
   "boe": {
     "activo": true,
     "dias_atras_primera_ejecucion": 30,
