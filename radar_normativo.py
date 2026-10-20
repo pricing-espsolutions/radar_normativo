@@ -691,6 +691,11 @@ class Almacen:
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", valores + (n.uid, ahora, ahora, ej))
         return True
 
+    def degrada(self, n: Noticia):
+        """Re-puntúa una noticia ya guardada que ha dejado de ser relevante (deja de mostrarse en el HTML)."""
+        self.db.execute("UPDATE noticias SET puntuacion=?, prioridad='baja', ultima_vez=? WHERE uid=?",
+                        (n.puntuacion, datetime.now().isoformat(timespec="seconds"), n.uid))
+
     def estado_fuente(self, ej, fuente_id, fuente, ok, recibidas, relevantes, error, seg):
         self.db.execute("INSERT INTO estado_fuentes VALUES (?,?,?,?,?,?,?,?)",
                         (ej, fuente_id, fuente, int(ok), recibidas, relevantes, error, round(seg, 1)))
@@ -848,10 +853,14 @@ def ejecuta(args) -> int:
         t0 = time.time()
         try:
             brutas = fn()
-            relevantes = [n for n in (clasif.evalua(x) for x in brutas) if clasif.es_relevante(n)]
+            evaluadas = [clasif.evalua(x) for x in brutas]
+            relevantes = [n for n in evaluadas if clasif.es_relevante(n)]
             for n in relevantes:
                 if almacen.guarda(n, ej):
                     nuevas.append(n)
+            for n in evaluadas:  # si ya estaba guardada y con las reglas actuales no es relevante, se oculta
+                if not clasif.es_relevante(n):
+                    almacen.degrada(n)
             almacen.estado_fuente(ej, fid, nombre, True, len(brutas), len(relevantes), None, time.time() - t0)
             log.info("%-28s OK  %4d recibidas · %3d relevantes", nombre, len(brutas), len(relevantes))
         except Exception as e:  # una fuente caída no tumba el resto

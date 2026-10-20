@@ -3,7 +3,12 @@ name: Radar normativo
 on:
   schedule:
     - cron: "15 5 * * 1-5"   # lunes a viernes, 05:15 UTC (07:15 en Madrid en horario de verano)
-  workflow_dispatch: {}       # botón "Run workflow" para lanzarlo a mano
+  workflow_dispatch:          # botón "Run workflow" para lanzarlo a mano
+    inputs:
+      dias_boe:
+        description: "Días de BOE a revisar (vacío = desde la última ejecución). Pon 30 para reprocesar el último mes."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -29,7 +34,8 @@ jobs:
       - name: Ejecutar radar
         env:
           RADAR_WEBHOOK_URL: ${{ secrets.RADAR_WEBHOOK_URL }}   # opcional (Teams/Slack/Google Chat)
-        run: python radar_normativo.py
+          DIAS_BOE: ${{ inputs.dias_boe }}
+        run: python radar_normativo.py ${DIAS_BOE:+--dias-boe "$DIAS_BOE"}
 
       - name: Guardar HTML e histórico
         run: |
