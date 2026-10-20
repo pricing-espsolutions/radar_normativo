@@ -365,7 +365,8 @@ def _ultimos_cambios(http: Http, id_: str, maximo: int) -> list[dict]:
     return refs[:maximo]
 
 
-def recoge_consolidada(http: Http, cfg: dict, almacen: "Almacen", ej: int) -> tuple[int, int]:
+def recoge_consolidada(http: Http, cfg: dict, almacen: "Almacen", ej: int,
+                       dias_forzados: int | None = None) -> tuple[int, int]:
     """Detecta normas vigentes (legislación consolidada) que el BOE ha actualizado.
 
     * Por materia: cualquier norma de esas materias con fecha de actualización en el periodo.
@@ -373,7 +374,10 @@ def recoge_consolidada(http: Http, cfg: dict, almacen: "Almacen", ej: int) -> tu
     Devuelve (normas revisadas, normas nuevas o cambiadas)."""
     dias_html = int(cfg.get("dias_html", 90))
     ultima = almacen.consolidada_ultima_revision()
-    desde = (ultima - timedelta(days=3)) if ultima else (hoy() - timedelta(days=dias_html))
+    if dias_forzados:  # revisión manual (--dias-boe): misma ventana que el BOE
+        desde = hoy() - timedelta(days=dias_forzados)
+    else:
+        desde = (ultima - timedelta(days=3)) if ultima else (hoy() - timedelta(days=dias_html))
     candidatas: dict[str, dict] = {}
 
     for codigo in cfg.get("materias", {}):
@@ -872,7 +876,7 @@ def ejecuta(args) -> int:
     if cons_cfg.get("activo", False):
         t0 = time.time()
         try:
-            revisadas, cambiadas = recoge_consolidada(http, cons_cfg, almacen, ej)
+            revisadas, cambiadas = recoge_consolidada(http, cons_cfg, almacen, ej, args.dias_boe)
             almacen.estado_fuente(ej, "boe_consolidada", "BOE · Legislación consolidada", True,
                                   revisadas, cambiadas, None, time.time() - t0)
             log.info("%-28s OK  %4d revisadas · %3d actualizadas", "BOE · Legislación consolidada",

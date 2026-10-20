@@ -1,6 +1,6 @@
 {
   "_comentario": "Configuración del radar. Puedes añadir/quitar fuentes RSS, ajustar pesos y términos sin tocar el código.",
-  "ventana_dias_html": 60,
+  "ventana_dias_html": 365,
   "umbral_relevancia": 3.0,
   "umbral_prioridad_alta": 8.0,
   "umbral_solo_texto": 12.0,
@@ -67,7 +67,7 @@
   "consolidada": {
     "_comentario": "Vigila normas vigentes (texto consolidado del BOE) que han sido modificadas. 'materias': códigos de materia del BOE; 'normas_clave': se muestran siempre con su última actualización.",
     "activo": true,
-    "dias_html": 90,
+    "dias_html": 365,
     "max_cambios": 3,
     "materias": {
       "6937": "Transportes por carretera",

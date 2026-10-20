@@ -6,7 +6,7 @@ on:
   workflow_dispatch:          # botón "Run workflow" para lanzarlo a mano
     inputs:
       dias_boe:
-        description: "Días de BOE a revisar (vacío = desde la última ejecución). Pon 30 para reprocesar el último mes."
+        description: "Días de BOE a revisar (vacío = desde la última ejecución). Pon 365 para revisar el último año (~1 h)."
         required: false
         default: ""
 
@@ -20,6 +20,7 @@ concurrency:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
+    timeout-minutes: 180     # la revisión de un año tarda ~1 h; las diarias, 1-2 min
     steps:
       - uses: actions/checkout@v4
 
