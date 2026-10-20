@@ -91,6 +91,205 @@
     },
     "solo_con_cambio_reciente": true
   },
+  "ue": {
+    "_comentario": "Unión Europea: actos del Diario Oficial (EUR-Lex) y asuntos del TJUE sobre transporte por carretera, vía el SPARQL oficial de la Oficina de Publicaciones. eurovoc_filtro: descriptores que seleccionan candidatos (además del código temático 0720 'Transporte terrestre'); el clasificador decide después.",
+    "activo": true,
+    "dias_primera_ejecucion": 90,
+    "margen_dias": 15,
+    "limite": 2000,
+    "directorio": "0720",
+    "eurovoc_filtro": [
+      "4533",
+      "4520",
+      "5209",
+      "3681",
+      "3116",
+      "4435",
+      "5215",
+      "4542",
+      "4658",
+      "c_b3e9d826",
+      "2433",
+      "2301",
+      "3115",
+      "4506",
+      "4047",
+      "4509"
+    ],
+    "max_bonus": 6,
+    "eurovoc_base": {
+      "transporte por carretera": 4,
+      "transporte internacional por carretera": 4,
+      "cabotaje de carretera": 4,
+      "transporte de mercancías peligrosas": 3,
+      "Acuerdo ADR": 3,
+      "duración de la conducción": 4,
+      "tiempo de descanso": 2,
+      "tarifa de transporte por carretera": 3,
+      "vehículo industrial": 2,
+      "vehículo industrial ligero": 2,
+      "peso y dimensiones": 3,
+      "peaje": 2
+    },
+    "eurovoc_bonus": {
+      "transporte de mercancías": 2,
+      "documento de transporte": 1,
+      "seguridad en carretera": 1,
+      "transporte combinado": 1,
+      "trabajador desplazado": 1,
+      "permiso de conducción": 1,
+      "transportista": 2
+    },
+    "eurovoc_penalizar": {
+      "Derecho de marcas": 0.2,
+      "marca de la UE": 0.2,
+      "política pesquera común": 0.2,
+      "control pesquero": 0.2,
+      "transporte colectivo": 0.4,
+      "transporte aéreo": 0.4,
+      "compañía aérea": 0.4,
+      "transporte ferroviario": 0.6,
+      "navegación fluvial": 0.4,
+      "navegación marítima": 0.4,
+      "residuo radiactivo": 0.4
+    },
+    "grupos": {
+      "legislacion": {
+        "nombre": "UE · Diario Oficial (EUR-Lex)",
+        "peso": 1.3,
+        "tipos": {
+          "REG": "Reglamento",
+          "REG_IMPL": "Reglamento de Ejecución",
+          "REG_DEL": "Reglamento Delegado",
+          "DIR": "Directiva",
+          "DIR_IMPL": "Directiva de Ejecución",
+          "DIR_DEL": "Directiva Delegada",
+          "DEC": "Decisión",
+          "DEC_IMPL": "Decisión de Ejecución",
+          "DEC_DEL": "Decisión Delegada",
+          "PROP_REG": "Propuesta de Reglamento",
+          "PROP_DIR": "Propuesta de Directiva"
+        }
+      },
+      "jurisprudencia": {
+        "nombre": "UE · Tribunal de Justicia (TJUE)",
+        "peso": 1.2,
+        "tipos": {
+          "JUDG": "Sentencia",
+          "ORDER": "Auto",
+          "INFO_JUDICIAL": "Asunto TJUE (DOUE C)"
+        }
+      }
+    },
+    "factor_correcciones": 0.5
+  },
+  "boletines_autonomicos": {
+    "_comentario": "Boletines oficiales autonómicos. Cada 'id' corresponde a un lector en boletines_ccaa.py. excluir_secciones: expresión regular (sin tildes, minúsculas) sobre 'sección · organismo' para descartar oposiciones, nombramientos, etc. organismos_bonus: suma puntos si el organismo contiene esos textos.",
+    "activo": true,
+    "dias_primera_ejecucion": 7,
+    "dias_atras_max": 10,
+    "peso": 1.0,
+    "excluir_secciones": "autoridades y personal|cargos y personal|oposiciones|nombramientos|concursos|administracion de justicia|contratacion|licitacion|personal\\b",
+    "organismos_base": {
+      "direccion general de transportes": 4,
+      "transportes y movilidad": 3,
+      "transporte terrestre": 3,
+      "transporte por carretera": 3,
+      "inspeccion de transporte": 3,
+      "junta arbitral del transporte": 3
+    },
+    "organismos_bonus": {
+      "transporte": 2,
+      "movilidad": 2,
+      "carreteras": 1,
+      "fomento": 1,
+      "infraestructuras": 0.5
+    },
+    "fuentes": [
+      {
+        "id": "borm",
+        "nombre": "BORM · Región de Murcia",
+        "activo": true,
+        "peso": 1.3
+      },
+      {
+        "id": "boja",
+        "nombre": "BOJA · Andalucía",
+        "activo": true
+      },
+      {
+        "id": "boa",
+        "nombre": "BOA · Aragón",
+        "activo": true
+      },
+      {
+        "id": "bopa",
+        "nombre": "BOPA · Asturias",
+        "activo": true
+      },
+      {
+        "id": "boib",
+        "nombre": "BOIB · Illes Balears",
+        "activo": true
+      },
+      {
+        "id": "boc_canarias",
+        "nombre": "BOC · Canarias",
+        "activo": true
+      },
+      {
+        "id": "bocyl",
+        "nombre": "BOCYL · Castilla y León",
+        "activo": true
+      },
+      {
+        "id": "docm",
+        "nombre": "DOCM · Castilla-La Mancha",
+        "activo": true
+      },
+      {
+        "id": "dogc",
+        "nombre": "DOGC · Cataluña",
+        "activo": true
+      },
+      {
+        "id": "dogv",
+        "nombre": "DOGV · Comunitat Valenciana",
+        "activo": true
+      },
+      {
+        "id": "doe",
+        "nombre": "DOE · Extremadura",
+        "activo": true
+      },
+      {
+        "id": "dog",
+        "nombre": "DOG · Galicia",
+        "activo": true
+      },
+      {
+        "id": "bocm",
+        "nombre": "BOCM · Comunidad de Madrid",
+        "activo": true
+      },
+      {
+        "id": "bopv",
+        "nombre": "BOPV · País Vasco",
+        "activo": true
+      },
+      {
+        "id": "bor",
+        "nombre": "BOR · La Rioja",
+        "activo": true
+      },
+      {
+        "id": "bome",
+        "nombre": "BOME · Melilla",
+        "activo": true
+      }
+    ],
+    "_no_disponibles": "BOC (Cantabria), BON (Navarra) y BOCCE (Ceuta) cortan las conexiones desde servidores fuera de España (también GitHub Actions). Sus leyes autonómicas llegan igualmente por el BOE (sección I)."
+  },
   "rss": [
     {
       "id": "fenadismer",
@@ -256,7 +455,16 @@
         "permiso de conducir": 2,
         "peaje": 3,
         "euroviñeta": 4,
-        "eurovineta": 4
+        "eurovineta": 4,
+        "restriccion de la circulacion": 4,
+        "restriccion del acceso": 3,
+        "restricciones de acceso": 3,
+        "circulacion de determinados vehiculos": 3,
+        "ordenanza de movilidad": 3,
+        "ordenanza reguladora de la movilidad": 3,
+        "vehiculos de mas de": 2,
+        "carga y descarga de mercancias": 3,
+        "plan de movilidad urbana sostenible": 1
       },
       "requiere_contexto": true
     },
@@ -277,7 +485,11 @@
         "autorizacion de transporte": 4,
         "tarjeta de transporte": 4,
         "competencia profesional": 3,
-        "carga y descarga": 3
+        "carga y descarga": 3,
+        "transporte publico de mercancias": 4,
+        "transporte de mercancias por carretera": 4,
+        "visado de autorizaciones": 3,
+        "autorizaciones de transporte": 4
       },
       "requiere_contexto": true
     },
@@ -322,15 +534,19 @@
     "Mercancías peligrosas y especiales": {
       "color": "#be123c",
       "terminos": {
-        "adr": 4,
         "mercancias peligrosas": 5,
         "consejero de seguridad": 4,
-        "atp": 3,
         "transporte de animales": 3,
-        "mercancias perecederas": 3
+        "mercancias perecederas": 3,
+        "acuerdo adr": 4,
+        "certificado adr": 3,
+        "adr 2025": 4,
+        "adr 2027": 4,
+        "acuerdo atp": 3,
+        "vehiculos atp": 3
       }
     },
-    "Transporte (BOE)": {
+    "Transporte (etiqueta oficial)": {
       "color": "#475569",
       "terminos": {}
     }
@@ -375,7 +591,26 @@
     "homologa",
     "homologacion",
     "normas une",
-    "normas europeas"
+    "normas europeas",
+    "formalizacion contrato",
+    "formalizacion del contrato",
+    "convocatoria contrato",
+    "licitacion",
+    "erasmus",
+    "transporte sanitario",
+    "transporte escolar",
+    "recogida y transporte de residuos",
+    "transporte de animales vivos",
+    "bienestar animal",
+    "expropiacion",
+    "actas previas a la ocupacion",
+    "capitania maritima",
+    "precio del billete",
+    "precio de los abonos",
+    "titulos multiviaje",
+    "transporte publico regular",
+    "servicios regulares de transporte",
+    "transporte de viajeros por carretera"
   ],
   "contexto_sector": [
     "transporte por carretera",
@@ -404,7 +639,14 @@
     "reparto",
     "gasoleo profesional",
     "tacografo",
-    "cadena de suministro"
+    "cadena de suministro",
+    "restriccion del acceso",
+    "restriccion de la circulacion",
+    "circulacion de determinados vehiculos",
+    "zona de bajas emisiones",
+    "zbe",
+    "autorizaciones de transporte",
+    "transporte publico de mercancias"
   ],
   "titulo_requiere_contexto": [
     "convenio colectivo"

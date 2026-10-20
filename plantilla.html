@@ -189,6 +189,7 @@ footer{padding:26px 0 40px;color:var(--suave);font-size:.88rem}
     <h2 id="t-nov">Novedades</h2>
     <div class="filtros">
       <input type="search" id="q" placeholder="Buscar: DeCA, tacógrafo, Verifactu…" aria-label="Buscar en novedades">
+      <select id="ambito" aria-label="Filtrar por ámbito"><option value="">Todos los ámbitos</option></select>
       <select id="fuente" aria-label="Filtrar por fuente"><option value="">Todas las fuentes</option></select>
       <label><input type="checkbox" id="soloAlta"> Solo prioridad alta</label>
       <label><input type="checkbox" id="soloNuevo"> Solo nuevas</label>
@@ -231,7 +232,7 @@ const D = /*__DATOS__*/null;
 
   // Cabecera
   const generado = new Date(D.generado);
-  $('#sub').textContent = `Actualizado el ${generado.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})} a las ${generado.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}. Novedades de los últimos ${D.ventana_dias} días en BOE (texto completo y legislación consolidada), Agencia Tributaria, DGT, Ministerio de Transportes, asociaciones y prensa del sector.`;
+  $('#sub').textContent = `Actualizado el ${generado.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})} a las ${generado.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}. Novedades de los últimos ${D.ventana_dias} días en BOE (texto completo y legislación consolidada), Diario Oficial y Tribunal de Justicia de la UE, boletines autonómicos, Agencia Tributaria, DGT, Ministerio de Transportes, asociaciones y prensa del sector.`;
   const nuevas = D.noticias.filter(n=>n.nuevo).length;
   const altas = D.noticias.filter(n=>n.prioridad==='alta').length;
   const prox = D.plazos.filter(p=>p.fecha && dias(p.fecha)>=0 && dias(p.fecha)<=90).length;
@@ -319,13 +320,18 @@ const D = /*__DATOS__*/null;
     cbox.append(b);
   });
   [...new Set(D.noticias.map(n=>n.fuente))].sort().forEach(f=>$('#fuente').append(el('option',{value:f,text:f})));
+  // Ámbito a partir del tipo de fuente
+  const AMBITO = {'Oficial':'Estatal','Oficial UE':'Unión Europea','Autonómico':'Autonómico','Asociación':'Sector y prensa','Medio':'Sector y prensa'};
+  const ambitoDe = n => AMBITO[n.tipo_fuente] || 'Otros';
+  ['Estatal','Unión Europea','Autonómico','Sector y prensa','Otros'].filter(a=>D.noticias.some(n=>ambitoDe(n)===a))
+    .forEach(a=>$('#ambito').append(el('option',{value:a,text:`${a} (${D.noticias.filter(n=>ambitoDe(n)===a).length})`})));
 
   const norm = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
   let pagina = 1; const POR_PAGINA = 40;
   function pinta(){
-    const q = norm($('#q').value.trim()), fu=$('#fuente').value, alta=$('#soloAlta').checked, nue=$('#soloNuevo').checked;
+    const q = norm($('#q').value.trim()), fu=$('#fuente').value, amb=$('#ambito').value, alta=$('#soloAlta').checked, nue=$('#soloNuevo').checked;
     const res = D.noticias.filter(n=>
-      (!activos.size || activos.has(n.categoria)) && (!fu || n.fuente===fu) &&
+      (!activos.size || activos.has(n.categoria)) && (!fu || n.fuente===fu) && (!amb || ambitoDe(n)===amb) &&
       (!alta || n.prioridad==='alta') && (!nue || n.nuevo) &&
       (!q || norm(n.titulo+' '+n.resumen+' '+n.categoria).includes(q)));
     const ul = $('#lista'); ul.replaceChildren();
@@ -352,7 +358,7 @@ const D = /*__DATOS__*/null;
     });
     $('#mas').hidden = res.length <= pagina*POR_PAGINA;
   }
-  ['#q','#fuente','#soloAlta','#soloNuevo'].forEach(s=>$(s).addEventListener('input',()=>{pagina=1;pinta();}));
+  ['#q','#ambito','#fuente','#soloAlta','#soloNuevo'].forEach(s=>$(s).addEventListener('input',()=>{pagina=1;pinta();}));
   $('#mas').onclick=()=>{pagina++;pinta();};
   pinta();
 

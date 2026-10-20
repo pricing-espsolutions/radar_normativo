@@ -425,6 +425,86 @@ def recoge_consolidada(http: Http, cfg: dict, almacen: "Almacen", ej: int,
     return len(candidatas), cambiadas
 
 
+SPARQL_UE = "https://publications.europa.eu/webapi/rdf/sparql"
+_RT_UE = "http://publications.europa.eu/resource/authority/resource-type/"
+CONSULTA_UE = """
+PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?celex ?fecha ?tipo (SAMPLE(?t) AS ?titulo) (SAMPLE(?vig) AS ?vigor)
+       (GROUP_CONCAT(DISTINCT ?evl; separator="|") AS ?eurovoc) WHERE {
+  VALUES ?tipo { %TIPOS% }
+  ?w cdm:work_has_resource-type ?tipo ;
+     cdm:resource_legal_id_celex ?celex ;
+     cdm:work_date_document ?fecha .
+  FILTER(?fecha >= "%DESDE%"^^xsd:date)
+  { ?w cdm:work_is_about_concept_eurovoc ?evf . VALUES ?evf { %EUROVOC% } }
+  UNION
+  { ?w cdm:resource_legal_is_about_concept_directory-code ?d .
+    FILTER(STRSTARTS(STR(?d), "http://publications.europa.eu/resource/authority/dir-eu-legal-act/%DIR%")) }
+  OPTIONAL { ?e cdm:expression_belongs_to_work ?w ; cdm:expression_title ?t ;
+             cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/SPA> . }
+  OPTIONAL { ?w cdm:resource_legal_date_entry-into-force ?vig . }
+  OPTIONAL { ?w cdm:work_is_about_concept_eurovoc ?ev . ?ev skos:prefLabel ?evl . FILTER(LANG(?evl) = "es") }
+} GROUP BY ?celex ?fecha ?tipo ORDER BY DESC(?fecha) LIMIT %LIMITE%
+"""
+
+
+def recoge_ue(http: Http, cfg: dict, grupo: str, desde: date) -> list[Noticia]:
+    """Actos de la UE (DOUE / EUR-Lex) y asuntos del TJUE sobre transporte por carretera.
+
+    Usa el endpoint SPARQL oficial de la Oficina de Publicaciones (la web de EUR-Lex bloquea bots).
+    Selecciona por descriptores EuroVoc y por el código temático 0720 (transporte terrestre); el
+    clasificador descarta después ferrocarril, aéreo, etc."""
+    g = cfg["grupos"][grupo]
+    tipos = g["tipos"]
+    consulta = (CONSULTA_UE
+                .replace("%TIPOS%", " ".join(f"<{_RT_UE}{t}>" for t in tipos))
+                .replace("%EUROVOC%", " ".join(f"<http://eurovoc.europa.eu/{e}>" for e in cfg["eurovoc_filtro"]))
+                .replace("%DIR%", cfg.get("directorio", "0720"))
+                .replace("%DESDE%", desde.isoformat())
+                .replace("%LIMITE%", str(int(cfg.get("limite", 2000)))))
+    r = http.get(SPARQL_UE, params={"query": consulta, "format": "application/sparql-results+json"},
+                 headers={"Accept": "application/sparql-results+json"})
+    r.raise_for_status()
+    base = {normaliza(k): float(v) for k, v in cfg.get("eurovoc_base", {}).items()}
+    apoyo = {normaliza(k): float(v) for k, v in cfg.get("eurovoc_bonus", {}).items()}
+    tope = float(cfg.get("max_bonus", 6))
+    penaliza = {normaliza(k): float(v) for k, v in cfg.get("eurovoc_penalizar", {}).items()}
+    out = []
+    for b in r.json()["results"]["bindings"]:
+        celex = b["celex"]["value"]
+        tipo = b["tipo"]["value"].rsplit("/", 1)[-1]
+        etiqueta = tipos.get(tipo, tipo)
+        correccion = bool(re.search(r"R\(\d+\)$", celex))
+        titulo = re.sub(r"\s+", " ", b.get("titulo", {}).get("value", "")).strip()
+        if not titulo:  # las correcciones de errores suelen venir sin título: se reconstruye del CELEX
+            m = re.match(r"3(\d{4})[A-Z](\d+)", celex)
+            ref = f"{etiqueta} {m.group(1)}/{int(m.group(2))}" if m else f"{etiqueta} {celex}"
+            titulo = f"Corrección de errores · {ref}" if correccion else ref
+        descriptores = [d for d in b.get("eurovoc", {}).get("value", "").split("|") if d]
+        vigor = (b.get("vigor", {}).get("value") or "")[:10] or None
+        n = Noticia(
+            fuente_id=f"ue_{grupo}", fuente=g["nombre"], tipo_fuente="Oficial UE",
+            titulo=titulo[:600],
+            url=f"https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:{requests.utils.quote(celex)}",
+            resumen=f"{etiqueta} · CELEX {celex}",
+            fecha_pub=b["fecha"]["value"][:10],
+            peso=float(g.get("peso", 1.3)), generalista=True, puntua_resumen=False,
+        )
+        n.materias = descriptores
+        n.texto = ". ".join(descriptores)
+        n.bonus_base = min(sum(base.get(normaliza(d), 0.0) for d in descriptores), tope)
+        n.bonus += min(sum(apoyo.get(normaliza(d), 0.0) for d in descriptores), tope)
+        n.vigencia = vigor
+        n.rango = etiqueta
+        if correccion:  # una corrección de errores pesa menos que el acto original
+            n.peso *= float(cfg.get("factor_correcciones", 0.5))
+        for d in descriptores:  # descriptores de otros ámbitos (marcas, pesca, viajeros...)
+            n.peso *= penaliza.get(normaliza(d), 1.0)
+        out.append(n)
+    return out
+
+
 def recoge_rss(http: Http, fuente: dict) -> list[Noticia]:
     r = http.get(fuente["url"])
     r.raise_for_status()
@@ -449,6 +529,35 @@ def recoge_rss(http: Http, fuente: dict) -> list[Noticia]:
             filtrar=fuente.get("filtrar", True),
             generalista=fuente.get("generalista", False),
         ))
+    return out
+
+
+def recoge_ccaa(http: Http, fuente: dict, desde: date, hasta: date) -> list[Noticia]:
+    """Boletín autonómico: el lector específico está en boletines_ccaa.py (LECTORES[id])."""
+    import boletines_ccaa  # módulo junto a este script
+    lector = boletines_ccaa.LECTORES.get(fuente.get("lector", fuente["id"]))
+    if lector is None:
+        raise ValueError(f"No hay lector para el boletín '{fuente['id']}' en boletines_ccaa.py")
+    excluir = re.compile(fuente["excluir_secciones"], re.I) if fuente.get("excluir_secciones") else None
+    bonus_org = {normaliza(k): float(v) for k, v in fuente.get("organismos_bonus", {}).items()}
+    base_org = {normaliza(k): float(v) for k, v in fuente.get("organismos_base", {}).items()}
+    out = []
+    for it in lector(http, desde, hasta):
+        if not it.get("titulo") or not it.get("enlace"):
+            continue
+        contexto = f"{it.get('seccion', '')} · {it.get('organismo', '')}".strip(" ·")
+        if excluir and excluir.search(normaliza(contexto)):
+            continue  # p. ej. oposiciones y nombramientos
+        out.append(Noticia(
+            fuente_id=fuente["id"], fuente=fuente["nombre"], tipo_fuente="Autonómico",
+            titulo=limpia_html(it["titulo"], 600), url=it["enlace"], resumen=contexto[:250],
+            fecha_pub=it.get("fecha") or hasta.isoformat(), extra=it.get("organismo", ""),
+            peso=float(fuente.get("peso", 1.0)), generalista=True,
+        ))
+        org = normaliza(f"{contexto} {it['titulo']}")
+        out[-1].bonus = sum(v for k, v in bonus_org.items() if k in org)
+        # organismos de transporte (p. ej. "Dirección General de Transportes"): bastan como materia relevante
+        out[-1].bonus_base = min(sum(v for k, v in base_org.items() if k in org), 6.0)
     return out
 
 
@@ -566,7 +675,7 @@ class Clasificador:
         n.solo_texto = bool(texto) and not fuera_del_texto and not n.bonus_base
         n.puntuacion = round(score, 1)
         n.categorias = sorted(puntos_cat, key=puntos_cat.get, reverse=True)
-        n.categoria = n.categorias[0] if n.categorias else ("Otros" if not n.bonus_base else "Transporte (BOE)")
+        n.categoria = n.categorias[0] if n.categorias else ("Otros" if not n.bonus_base else "Transporte (etiqueta oficial)")
         n.senales = senales[:6]
         n.fechas_clave = extrae_fechas(f"{n.titulo}. {n.resumen}. {n.texto}", n.fecha_pub)
         # entrada en vigor diferida declarada por el propio BOE
@@ -851,6 +960,32 @@ def ejecuta(args) -> int:
     for f in cfg.get("html", []):
         if f.get("activo", True):
             tareas.append((f["id"], f["nombre"], lambda f=f: recoge_html_listado(http, f)))
+    ue_cfg = cfg.get("ue", {})
+    if ue_cfg.get("activo", False):
+        if args.dias_boe:
+            dias_ue = args.dias_boe
+        elif ultima:  # los actos llegan al índice días después de su fecha: margen amplio
+            dias_ue = (hoy() - ultima.date()).days + int(ue_cfg.get("margen_dias", 15))
+        else:
+            dias_ue = int(ue_cfg.get("dias_primera_ejecucion", 90))
+        desde_ue = hoy() - timedelta(days=dias_ue)
+        for grupo, g in ue_cfg.get("grupos", {}).items():
+            tareas.append((f"ue_{grupo}", g["nombre"], lambda grupo=grupo: recoge_ue(http, ue_cfg, grupo, desde_ue)))
+    bol_cfg = cfg.get("boletines_autonomicos", {})
+    if bol_cfg.get("activo", False):
+        if args.dias_boe:
+            dias_bol = args.dias_boe
+        elif ultima:
+            dias_bol = min((hoy() - ultima.date()).days + 2, int(bol_cfg.get("dias_atras_max", 10)))
+        else:
+            dias_bol = int(bol_cfg.get("dias_primera_ejecucion", 7))
+        desde_bol = hoy() - timedelta(days=dias_bol)
+        comunes = {k: bol_cfg[k] for k in ("excluir_secciones", "organismos_bonus", "organismos_base", "peso")
+                   if k in bol_cfg}
+        for f in bol_cfg.get("fuentes", []):
+            if f.get("activo", True):
+                f = {**comunes, **f}  # lo que defina cada boletín manda sobre lo común
+                tareas.append((f["id"], f["nombre"], lambda f=f: recoge_ccaa(http, f, desde_bol, hoy())))
 
     nuevas: list[Noticia] = []
     for fid, nombre, fn in tareas:
