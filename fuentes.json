@@ -3,6 +3,9 @@
   "ventana_dias_html": 60,
   "umbral_relevancia": 3.0,
   "umbral_prioridad_alta": 8.0,
+  "umbral_solo_texto": 12.0,
+  "peso_texto": 0.5,
+  "factor_excluir": 0.2,
   "user_agent": "Mozilla/5.0 (compatible; RadarNormativoTransporte/1.0)",
   "boe": {
     "activo": true,
@@ -25,7 +28,68 @@
     "bonus_seccion": {
       "1": 2.0,
       "3": 0.0
+    },
+    "xml": {
+      "_comentario": "Descarga el XML oficial de cada disposición de estas secciones para puntuar su texto, sus materias oficiales y detectar qué normas modifica y cuándo entra en vigor.",
+      "activo": true,
+      "secciones": [
+        "1",
+        "3"
+      ],
+      "max_caracteres_texto": 6000,
+      "max_caracteres_clave": 3000,
+      "pausa_segundos": 0.15,
+      "max_referencias": 6,
+      "max_bonus_materias": 6,
+      "_materias": "materias_base: bastan por sí solas para considerar la norma del sector. materias_bonus: solo suman si ya hay materia relevante.",
+      "materias_base": {
+        "Transportes por carretera": 4,
+        "Mercancías peligrosas": 3,
+        "Circulación vial": 2,
+        "Conductores de vehículos de motor": 2,
+        "Impuesto Especial sobre Hidrocarburos": 2,
+        "Empresas de transporte": 3,
+        "Licencia de transportes": 3
+      },
+      "materias_bonus": {
+        "Transporte de mercancías": 2,
+        "Carburantes y combustibles": 1.5,
+        "Transportes terrestres": 1,
+        "Transportes internacionales": 1,
+        "Vehículos de motor": 1,
+        "Carreteras": 1
+      },
+      "alertas_bonus": {
+        "Transportes y tráfico": 1.5
+      }
     }
+  },
+  "consolidada": {
+    "_comentario": "Vigila normas vigentes (texto consolidado del BOE) que han sido modificadas. 'materias': códigos de materia del BOE; 'normas_clave': se muestran siempre con su última actualización.",
+    "activo": true,
+    "dias_html": 90,
+    "max_cambios": 3,
+    "materias": {
+      "6937": "Transportes por carretera",
+      "858": "Circulación vial",
+      "4936": "Mercancías peligrosas",
+      "1337": "Conductores de vehículos de motor"
+    },
+    "normas_clave": {
+      "BOE-A-1987-17803": "LOTT (Ley 16/1987)",
+      "BOE-A-1990-24442": "ROTT (RD 1211/1990)",
+      "BOE-A-2009-18004": "Contrato de transporte (Ley 15/2009)",
+      "BOE-A-2025-24545": "Movilidad Sostenible (Ley 9/2025)",
+      "BOE-A-2015-11722": "Ley de Tráfico (RDL 6/2015)",
+      "BOE-A-2003-23514": "Reglamento General de Circulación",
+      "BOE-A-1999-1826": "Reglamento General de Vehículos",
+      "BOE-A-2021-6624": "CAP conductores (RD 284/2021)",
+      "BOE-A-2014-2110": "Mercancías peligrosas (RD 97/2014)",
+      "BOE-A-1992-28741": "Impuestos Especiales (Ley 38/1992)",
+      "BOE-A-1992-28740": "IVA (Ley 37/1992)",
+      "BOE-A-2012-14696": "Reglamento de facturación (RD 1619/2012)"
+    },
+    "solo_con_cambio_reciente": true
   },
   "rss": [
     {
@@ -265,6 +329,10 @@
         "transporte de animales": 3,
         "mercancias perecederas": 3
       }
+    },
+    "Transporte (BOE)": {
+      "color": "#475569",
+      "terminos": {}
     }
   },
   "senales_obligacion": {
@@ -304,7 +372,10 @@
     "delegacion de competencias",
     "se emplaza",
     "comision mixta",
-    "homologa"
+    "homologa",
+    "homologacion",
+    "normas une",
+    "normas europeas"
   ],
   "contexto_sector": [
     "transporte por carretera",
@@ -334,5 +405,12 @@
     "gasoleo profesional",
     "tacografo",
     "cadena de suministro"
-  ]
+  ],
+  "titulo_requiere_contexto": [
+    "convenio colectivo"
+  ],
+  "departamentos_penalizar": {
+    "MINISTERIO DE DEFENSA": 0.2
+  },
+  "dias_vigencia_diferida": 7
 }

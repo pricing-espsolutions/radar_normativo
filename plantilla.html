@@ -112,7 +112,22 @@ section{padding:22px 0}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .chip{font-size:.8rem;border:1px solid var(--linea);border-radius:3px;padding:1px 7px;color:var(--suave)}
 .chip.fecha{border-color:var(--senal);color:var(--asfalto)}
+.chip.vig{border-color:var(--verde);color:var(--verde)}
+.modifica{margin:6px 0 0;padding-left:1.1rem;font-size:.86rem;color:var(--suave)}
+.modifica li{margin:1px 0}
 .vacio{padding:28px 18px;color:var(--suave)}
+
+/* Normas vigentes modificadas */
+.normas{list-style:none;margin:14px 0 0;padding:0;background:var(--papel);border:1px solid var(--linea);border-radius:4px}
+.norma-c{padding:12px 16px;border-bottom:1px solid var(--linea)}
+.norma-c:last-child{border-bottom:0}
+.norma-c h3{font:600 1.02rem/1.3 "Barlow",sans-serif;margin:2px 0}
+.norma-c h3 a{color:var(--asfalto);text-decoration:none}
+.norma-c h3 a:hover{text-decoration:underline}
+.norma-c .cambios{margin:4px 0 0;padding-left:1.1rem;font-size:.88rem}
+.norma-c .cambios li{margin:2px 0}
+.clave{background:var(--asfalto);color:var(--fondo);font-weight:600;border-radius:3px;padding:0 6px}
+.reciente{color:var(--rojo);font-weight:600}
 .mas{display:block;margin:12px auto 0;padding:9px 18px;border:1px solid var(--linea);background:var(--papel);color:var(--asfalto);border-radius:4px;font:600 .95rem "Barlow",sans-serif;cursor:pointer}
 
 /* Fuentes */
@@ -158,6 +173,16 @@ footer{padding:26px 0 40px;color:var(--suave);font-size:.88rem}
     </div>
     <div class="plazos" id="plazos"></div>
     <details class="auto" id="auto"></details>
+  </section>
+
+  <section aria-labelledby="t-cons" id="sec-cons">
+    <h2 id="t-cons">Normas vigentes que han cambiado</h2>
+    <p class="sub">Leyes y reglamentos en vigor cuyo texto consolidado ha actualizado el BOE. Las marcadas como «Norma clave» se muestran siempre.</p>
+    <div class="filtros">
+      <label><input type="checkbox" id="consClave"> Solo normas clave</label>
+      <label><input type="checkbox" id="cons30" checked> Actualizadas en los últimos 30 días</label>
+    </div>
+    <ul class="normas" id="normas"></ul>
   </section>
 
   <section aria-labelledby="t-nov">
@@ -206,13 +231,15 @@ const D = /*__DATOS__*/null;
 
   // Cabecera
   const generado = new Date(D.generado);
-  $('#sub').textContent = `Actualizado el ${generado.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})} a las ${generado.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}. Novedades de los últimos ${D.ventana_dias} días en BOE, Agencia Tributaria, DGT, Ministerio de Transportes, asociaciones y prensa del sector.`;
+  $('#sub').textContent = `Actualizado el ${generado.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})} a las ${generado.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}. Novedades de los últimos ${D.ventana_dias} días en BOE (texto completo y legislación consolidada), Agencia Tributaria, DGT, Ministerio de Transportes, asociaciones y prensa del sector.`;
   const nuevas = D.noticias.filter(n=>n.nuevo).length;
   const altas = D.noticias.filter(n=>n.prioridad==='alta').length;
   const prox = D.plazos.filter(p=>p.fecha && dias(p.fecha)>=0 && dias(p.fecha)<=90).length;
   const fOk = D.fuentes.filter(f=>f.ok).length;
+  const CONS = D.consolidada || [];
+  const consRec = CONS.filter(c=>c.fecha_actualizacion && dias(c.fecha_actualizacion.slice(0,10))>=-30).length;
   const r = $('#resumen');
-  [[nuevas,'nuevas en la última revisión',''],[altas,'prioridad alta',''],[prox,'plazos en 90 días',prox?'aviso':''],[`${fOk}/${D.fuentes.length}`,'fuentes al día', fOk<D.fuentes.length?'aviso':'']]
+  [[nuevas,'nuevas en la última revisión',''],[altas,'prioridad alta',''],[prox,'plazos en 90 días',prox?'aviso':''],[consRec,'normas vigentes cambiadas (30 días)',''],[`${fOk}/${D.fuentes.length}`,'fuentes al día', fOk<D.fuentes.length?'aviso':'']]
     .forEach(([v,t,c])=>r.append(el('div',{class:c},el('b',{text:String(v)}),el('span',{text:t}))));
 
   // Plazos: estado calculado
@@ -316,8 +343,11 @@ const D = /*__DATOS__*/null;
             el('span',{text:fmt(n.fecha_pub||(n.primera_vez||'').slice(0,10))})),
           el('h3',{}, el('a',{href:n.url,target:'_blank',rel:'noopener',text:n.titulo})),
           n.resumen? el('p',{text:n.resumen}):null,
-          (n.senales.length||n.fechas_clave.length)? el('div',{class:'chips'},
-            n.fechas_clave.map(f=>el('span',{class:'chip fecha',text:`Fecha citada: ${fmt(f.fecha)}`})),
+          (n.modifica&&n.modifica.length)? el('ul',{class:'modifica','aria-label':'Normas afectadas'},
+            n.modifica.slice(0,3).map(m=>el('li',{text:m})), n.modifica.length>3? el('li',{text:`y ${n.modifica.length-3} más`}):null) : null,
+          (n.senales.length||n.fechas_clave.length||n.vigencia)? el('div',{class:'chips'},
+            n.vigencia? el('span',{class:'chip vig',text:`${dias(n.vigencia)>0?'Entra en vigor':'En vigor desde'}: ${fmt(n.vigencia)}`}):null,
+            n.fechas_clave.filter(f=>f.fecha!==n.vigencia).map(f=>el('span',{class:'chip fecha',text:`Fecha citada: ${fmt(f.fecha)}`})),
             n.senales.map(s=>el('span',{class:'chip',text:s}))) : null)));
     });
     $('#mas').hidden = res.length <= pagina*POR_PAGINA;
@@ -325,6 +355,34 @@ const D = /*__DATOS__*/null;
   ['#q','#fuente','#soloAlta','#soloNuevo'].forEach(s=>$(s).addEventListener('input',()=>{pagina=1;pinta();}));
   $('#mas').onclick=()=>{pagina++;pinta();};
   pinta();
+
+  // Normas vigentes modificadas (legislación consolidada)
+  function pintaNormas(){
+    const ul = $('#normas'); ul.replaceChildren();
+    const soloClave = $('#consClave').checked, solo30 = $('#cons30').checked;
+    const lista = CONS.filter(c=>{
+      const d = c.fecha_actualizacion ? dias(c.fecha_actualizacion.slice(0,10)) : -9999;
+      return (!soloClave || c.clave) && (!solo30 || d>=-30);
+    });
+    if(!lista.length){ ul.append(el('li',{class:'vacio',text: CONS.length ? 'Ninguna norma con estos filtros.' : 'Sin datos de legislación consolidada todavía.'})); return; }
+    lista.forEach(c=>{
+      const f = c.fecha_actualizacion ? c.fecha_actualizacion.slice(0,10) : null;
+      const d = f ? dias(f) : null;
+      ul.append(el('li',{class:'norma-c'},
+        el('div',{class:'meta'},
+          c.nuevo? el('span',{class:'nuevo',text:'Nueva'}):null,
+          c.clave? el('span',{class:'clave',text:'Norma clave'}):null,
+          el('span',{class: d!==null && d>=-7 ? 'reciente':'' , text: f ? `Actualizada el ${fmt(f)} (${cuenta(d)})` : 'Sin fecha'}),
+          c.rango? el('span',{text:c.rango}):null,
+          c.derogada? el('span',{class:'prio-alta',text:'Derogada'}):null),
+        el('h3',{}, el('a',{href:c.url,target:'_blank',rel:'noopener',text: c.clave ? `${c.clave} · ${c.titulo}` : c.titulo})),
+        (c.cambios&&c.cambios.length)? el('ul',{class:'cambios','aria-label':'Últimas modificaciones'},
+          c.cambios.map(x=>el('li',{}, el('strong',{text:x.relacion.toLowerCase().replace(/^se /,'')+' '}), x.texto+' ',
+            el('a',{href:x.url,target:'_blank',rel:'noopener',text:x.id})))) : null));
+    });
+  }
+  if(CONS.length){ ['#consClave','#cons30'].forEach(s=>$(s).addEventListener('input',pintaNormas)); pintaNormas(); }
+  else $('#sec-cons').remove();
 
   // Fuentes
   const tb = $('#tfuentes');

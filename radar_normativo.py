@@ -8,7 +8,9 @@ y logística en España, las puntúa por relevancia y genera un HTML autónomo
 que se actualiza en cada ejecución.
 
 Fuentes (configurables en fuentes.json):
-  * BOE         -> API oficial de datos abiertos (sumario diario en JSON)
+  * BOE         -> API oficial de datos abiertos (sumario diario en JSON) + XML de cada
+                   disposición (texto, materias, normas que modifica, fecha de vigencia)
+  * BOE consolidada -> normas vigentes de transporte que han sido modificadas
   * RSS         -> asociaciones (FENADISMER, CETM, ASTIC, UNO), AEAT, DGT, prensa sectorial
   * HTML        -> sala de prensa del Ministerio de Transportes (best effort)
 
@@ -35,6 +37,7 @@ import sqlite3
 import sys
 import time
 import unicodedata
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -76,6 +79,14 @@ class Noticia:
     filtrar: bool = True
     generalista: bool = False  # fuente no sectorial: algunos temas exigen contexto de transporte
     puntua_resumen: bool = True
+    # enriquecimiento BOE (XML de la disposición)
+    texto: str = ""  # extracto del texto oficial: se puntúa, no se guarda
+    bonus_base: float = 0.0  # materias oficiales de transporte: cuentan como materia relevante
+    materias: list[str] = field(default_factory=list)
+    modifica: list[str] = field(default_factory=list)
+    vigencia: str | None = None  # ISO yyyy-mm-dd
+    rango: str = ""
+    solo_texto: bool = False  # la materia relevante solo aparece en el cuerpo del texto oficial
 
     # calculados
     puntuacion: float = 0.0
@@ -162,6 +173,9 @@ def recoge_boe(http: Http, cfg: dict, desde: date, hasta: date) -> list[Noticia]
     secciones = set(cfg.get("secciones", ["1", "3"]))
     bonus_dep = {k.upper(): v for k, v in cfg.get("departamentos_bonus", {}).items()}
     bonus_sec = {str(k): float(v) for k, v in cfg.get("bonus_seccion", {}).items()}
+    xml_cfg = cfg.get("xml", {})
+    secciones_xml = set(xml_cfg.get("secciones", ["1", "3"])) if xml_cfg.get("activo", True) else set()
+    errores_xml = 0
     out: list[Noticia] = []
     dia = desde
     while dia <= hasta:
@@ -188,7 +202,7 @@ def recoge_boe(http: Http, cfg: dict, desde: date, hasta: date) -> list[Noticia]
                             titulo = (it.get("titulo") or "").strip()
                             if not titulo:
                                 continue
-                            out.append(Noticia(
+                            n = Noticia(
                                 fuente_id="boe",
                                 fuente="BOE",
                                 tipo_fuente="Oficial",
@@ -205,12 +219,206 @@ def recoge_boe(http: Http, cfg: dict, desde: date, hasta: date) -> list[Noticia]
                                 # Disposiciones generales de Transportes: siempre se muestran
                                 filtrar=not (str(sec.get("codigo")) == "1"
                                              and "TRANSPORTES" in nombre_dep.upper()),
-                            ))
+                            )
+                            ident = it.get("identificador") or ""
+                            if str(sec.get("codigo")) in secciones_xml and ident.startswith("BOE-A-"):
+                                try:
+                                    enriquece_boe(http, n, ident, xml_cfg)
+                                except Exception as e:  # sin XML se puntúa solo con el título
+                                    errores_xml += 1
+                                    log.debug("BOE XML %s: %s", ident, e)
+                                time.sleep(float(xml_cfg.get("pausa_segundos", 0.15)))
+                            out.append(n)
         else:
             log.warning("BOE %s: HTTP %s", dia, r.status_code)
         dia += timedelta(days=1)
         time.sleep(0.3)  # cortesía con el servidor
+    if errores_xml:
+        log.warning("BOE: %d disposiciones sin XML (se han puntuado solo por el título)", errores_xml)
     return out
+
+
+def _fecha_boe(valor: str | None) -> str | None:
+    """'20261001' -> '2026-10-01'."""
+    v = (valor or "").strip()
+    if not re.fullmatch(r"\d{8}", v):
+        return None
+    return f"{v[:4]}-{v[4:6]}-{v[6:]}"
+
+
+RE_FRASES_CLAVE = re.compile(
+    r"entrar[aá] en vigor|surtir[aá] efectos|a partir del|plazo|ser[aá] obligatori|deber[aá]n|hasta el \d", re.I)
+
+
+def enriquece_boe(http: Http, n: Noticia, ident: str, cfg: dict):
+    """Descarga el XML oficial de la disposición y añade texto, materias, normas que modifica y vigencia.
+
+    El análisis documental (materias, alertas, referencias) lo añade el BOE a veces días después de
+    publicar; si aún no está, la noticia se puntúa igualmente con el texto."""
+    r = http.get(f"https://www.boe.es/diario_boe/xml.php?id={ident}", headers={"Accept": "application/xml"})
+    r.raise_for_status()
+    raiz = ET.fromstring(r.content)
+    meta = raiz.find("metadatos")
+    analisis = raiz.find("analisis")
+
+    if meta is not None:
+        n.rango = (meta.findtext("rango") or "").strip()
+        n.vigencia = _fecha_boe(meta.findtext("fecha_vigencia"))
+
+    alertas: list[str] = []
+    if analisis is not None:
+        n.materias = [m.text.strip() for m in analisis.iterfind("materias/materia") if m.text]
+        alertas = [a.text.strip() for a in analisis.iterfind("alertas/alerta") if a.text]
+        for ref in analisis.iterfind("referencias/anteriores/anterior"):
+            verbo = re.sub(r"\s+", " ", (ref.findtext("palabra") or "")).strip()
+            if any(v in verbo.upper() for v in ("MODIFICA", "DEROGA", "AÑADE", "PRORROGA", "SUSPENDE", "DESARROLLA")):
+                texto_ref = re.sub(r"\s+", " ", (ref.findtext("texto") or "")).strip(" ,.")
+                n.modifica.append(f"{verbo} {texto_ref}"[:220])
+        n.modifica = n.modifica[: int(cfg.get("max_referencias", 6))]
+
+    # Etiquetas oficiales: las materias "fuertes" bastan por sí solas para considerar la norma del sector;
+    # las "de apoyo" (p.ej. Transporte de mercancías, que aparece hasta en normas agrícolas) solo suman.
+    tope = float(cfg.get("max_bonus_materias", 6))
+    materias_base = {normaliza(k): float(v) for k, v in cfg.get("materias_base", {}).items()}
+    materias_bonus = {normaliza(k): float(v) for k, v in cfg.get("materias_bonus", {}).items()}
+    n.bonus_base = min(sum(materias_base.get(normaliza(m), 0.0) for m in n.materias), tope)
+    n.bonus += min(sum(materias_bonus.get(normaliza(m), 0.0) for m in n.materias), tope)
+    alertas_bonus = {normaliza(k): float(v) for k, v in cfg.get("alertas_bonus", {}).items()}
+    n.bonus += sum(alertas_bonus.get(normaliza(a), 0.0) for a in alertas)
+
+    # Extracto del texto: el principio (objeto de la norma) + párrafos con plazos o entrada en vigor
+    cuerpo = raiz.find("texto")
+    if cuerpo is not None:
+        parrafos = [re.sub(r"\s+", " ", "".join(p.itertext())).strip() for p in cuerpo.iter("p")]
+        parrafos = [p for p in parrafos if p]
+        max_ini = int(cfg.get("max_caracteres_texto", 6000))
+        max_clave = int(cfg.get("max_caracteres_clave", 3000))
+        inicio, total = [], 0
+        for p in parrafos:
+            if total >= max_ini:
+                break
+            inicio.append(p)
+            total += len(p)
+        clave, total = [], 0
+        for p in parrafos[len(inicio):]:
+            if total >= max_clave:
+                break
+            if RE_FRASES_CLAVE.search(p):
+                clave.append(p)
+                total += len(p)
+        n.texto = " ".join(inicio + clave)
+    if n.materias:
+        n.texto = " ".join(n.materias) + ". " + n.texto
+
+
+API_CONSOLIDADA = "https://www.boe.es/datosabiertos/api/legislacion-consolidada"
+
+
+def _ts_boe(valor: str | None) -> str | None:
+    """'20260916T105936Z' -> '2026-09-16T10:59:36'."""
+    m = re.fullmatch(r"(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z?)?", (valor or "").strip())
+    if not m:
+        return None
+    y, mo, d, hh, mi, ss = m.groups()
+    return f"{y}-{mo}-{d}T{hh or '00'}:{mi or '00'}:{ss or '00'}"
+
+
+def _texto(x) -> str:
+    return (x.get("texto") if isinstance(x, dict) else x) or ""
+
+
+def _norma_consolidada(meta: dict) -> dict:
+    return {
+        "id": meta["identificador"],
+        "titulo": (meta.get("titulo") or "").strip(),
+        "rango": _texto(meta.get("rango")),
+        "departamento": _texto(meta.get("departamento")),
+        "fecha_actualizacion": _ts_boe(meta.get("fecha_actualizacion")),
+        "url": meta.get("url_html_consolidada") or f"https://www.boe.es/buscar/act.php?id={meta['identificador']}",
+        # la búsqueda no trae estatus_derogacion, pero sí vigencia_agotada
+        "derogada": meta.get("estatus_derogacion") == "S" or meta.get("vigencia_agotada") == "S",
+    }
+
+
+def _ultimos_cambios(http: Http, id_: str, maximo: int) -> list[dict]:
+    """Normas posteriores que han modificado `id_`, de la más reciente a la más antigua."""
+    r = http.get(f"{API_CONSOLIDADA}/id/{id_}/analisis", headers={"Accept": "application/json"})
+    r.raise_for_status()
+    datos = _como_lista(r.json().get("data"))
+    refs = []
+    for d in datos:
+        for bloque in _como_lista((d.get("referencias") or {}).get("posteriores")):
+            for p in _como_lista(bloque.get("posterior") if isinstance(bloque, dict) else None):
+                m = re.fullmatch(r"BOE-[A-Z]-(\d{4})-(\d+)", p.get("id_norma") or "")
+                if not m:
+                    continue
+                refs.append({
+                    "orden": (int(m.group(1)), int(m.group(2))),
+                    "id": p["id_norma"],
+                    "relacion": _texto(p.get("relacion")).strip(),
+                    "texto": re.sub(r"\s+", " ", p.get("texto") or "").strip(" ,.")[:260],
+                    "url": f"https://www.boe.es/buscar/doc.php?id={p['id_norma']}",
+                })
+    refs.sort(key=lambda x: x["orden"], reverse=True)
+    for x in refs:
+        x.pop("orden")
+    return refs[:maximo]
+
+
+def recoge_consolidada(http: Http, cfg: dict, almacen: "Almacen", ej: int) -> tuple[int, int]:
+    """Detecta normas vigentes (legislación consolidada) que el BOE ha actualizado.
+
+    * Por materia: cualquier norma de esas materias con fecha de actualización en el periodo.
+    * Normas clave: se consultan siempre por identificador y se muestran aunque no cambien.
+    Devuelve (normas revisadas, normas nuevas o cambiadas)."""
+    dias_html = int(cfg.get("dias_html", 90))
+    ultima = almacen.consolidada_ultima_revision()
+    desde = (ultima - timedelta(days=3)) if ultima else (hoy() - timedelta(days=dias_html))
+    candidatas: dict[str, dict] = {}
+
+    for codigo in cfg.get("materias", {}):
+        consulta = json.dumps({"query": {"query_string": {"query": f"materia@codigo:{codigo}"}}})
+        r = http.get(API_CONSOLIDADA, headers={"Accept": "application/json"},
+                     params={"query": consulta, "from": f"{desde:%Y%m%d}", "to": f"{hoy():%Y%m%d}", "limit": -1})
+        r.raise_for_status()
+        for meta in _como_lista(r.json().get("data")):
+            if meta.get("identificador"):
+                candidatas.setdefault(meta["identificador"], _norma_consolidada(meta))
+        time.sleep(0.3)
+
+    for id_, nombre in cfg.get("normas_clave", {}).items():
+        r = http.get(f"{API_CONSOLIDADA}/id/{id_}/metadatos", headers={"Accept": "application/json"})
+        if r.status_code == 404:
+            log.warning("Consolidada: %s (%s) no existe; revisa normas_clave en fuentes.json", id_, nombre)
+            continue
+        r.raise_for_status()
+        meta = _como_lista(r.json().get("data"))[0]
+        d = candidatas.setdefault(id_, _norma_consolidada(meta))
+        d["clave"] = nombre
+        time.sleep(0.2)
+
+    cambiadas = 0
+    for id_, d in candidatas.items():
+        if d["derogada"] and not d.get("clave"):
+            continue
+        if almacen.consolidada_fecha(id_) == d["fecha_actualizacion"]:
+            almacen.consolidada_toca(id_, d.get("clave"))
+            continue
+        try:
+            d["cambios"] = _ultimos_cambios(http, id_, int(cfg.get("max_cambios", 3)))
+        except Exception as e:
+            log.debug("Consolidada %s: sin análisis (%s)", id_, e)
+            d["cambios"] = []
+        # el BOE a veces reprocesa normas sin que nada nuevo las modifique: fuera, salvo las normas clave
+        if not d.get("clave") and cfg.get("solo_con_cambio_reciente", True):
+            anio_act = int((d["fecha_actualizacion"] or "0000")[:4])
+            anios = [int(c["id"].split("-")[2]) for c in d["cambios"]]
+            if not anios or max(anios) < anio_act - 1:
+                continue
+        cambiadas += almacen.consolidada_guarda(d, ej)
+        time.sleep(0.2)
+    almacen.commit()
+    return len(candidatas), cambiadas
 
 
 def recoge_rss(http: Http, fuente: dict) -> list[Noticia]:
@@ -298,6 +506,13 @@ class Clasificador:
         self.contexto = [self._re(t) for t in cfg.get("contexto_sector", [])]
         self.senales = [(t, self._re(t), float(p)) for t, p in cfg.get("senales_obligacion", {}).items()]
         self.excluir = [self._re(t) for t in cfg.get("terminos_excluir", [])]
+        # términos que solo cuentan si el TÍTULO también habla del sector (p.ej. convenios colectivos)
+        self.titulo_requiere_contexto = [self._re(t) for t in cfg.get("titulo_requiere_contexto", [])]
+        self.penaliza_dep = {k.upper(): float(v) for k, v in cfg.get("departamentos_penalizar", {}).items()}
+        self.dias_vigencia_diferida = int(cfg.get("dias_vigencia_diferida", 7))
+        self.peso_texto = float(cfg.get("peso_texto", 0.5))
+        self.factor_excluir = float(cfg.get("factor_excluir", 0.2))
+        self.umbral_solo_texto = float(cfg.get("umbral_solo_texto", 12))
 
     @staticmethod
     def _re(termino: str) -> re.Pattern:
@@ -307,8 +522,11 @@ class Clasificador:
     def evalua(self, n: Noticia) -> Noticia:
         titulo = normaliza(n.titulo)
         cuerpo = normaliza(f"{n.resumen} {n.extra}") if n.puntua_resumen else ""
-        con_contexto = (not n.generalista) or any(rx.search(titulo) or rx.search(cuerpo) for rx in self.contexto)
+        texto = normaliza(n.texto) if n.texto else ""
+        con_contexto = (not n.generalista) or any(
+            rx.search(titulo) or rx.search(cuerpo) or rx.search(texto) for rx in self.contexto)
         puntos_cat: dict[str, float] = {}
+        fuera_del_texto = False  # ¿alguna materia aparece en título o resumen?
         for cat, terminos in self.categorias.items():
             if cat in self.requiere_contexto and not con_contexto:
                 continue
@@ -316,25 +534,47 @@ class Clasificador:
             for rx, peso in terminos:
                 if rx.search(titulo):
                     s += peso * 1.5  # en el título pesa más
+                    fuera_del_texto = True
                 elif rx.search(cuerpo):
                     s += peso
+                    fuera_del_texto = True
+                elif texto and rx.search(texto):
+                    s += peso * self.peso_texto  # el texto oficial es largo: pesa menos
             if s:
                 puntos_cat[cat] = s
+        # las señales ("plazo", "deberán"...) aparecen en casi cualquier texto legal: solo título y resumen
         senales = [t for t, rx, _ in self.senales if rx.search(titulo) or rx.search(cuerpo)]
         p_senales = min(sum(p for t, _, p in self.senales if t in senales), 6.0)
 
-        base = sum(puntos_cat.values())
+        # materias oficiales del BOE (transporte por carretera, mercancías...) cuentan como materia relevante
+        base = sum(puntos_cat.values()) + n.bonus_base
         # señales y bonus de departamento solo suman si hay materia relevante
         score = (base + p_senales + n.bonus) * n.peso if base else 0.0
         if any(rx.search(titulo) for rx in self.excluir):
-            score *= 0.2
+            score *= self.factor_excluir
+        if any(rx.search(titulo) for rx in self.titulo_requiere_contexto) \
+                and not any(rx.search(titulo) for rx in self.contexto):
+            score *= self.factor_excluir
+        for dep, factor in self.penaliza_dep.items():
+            if dep in (n.extra or "").upper():
+                score *= factor
 
+        n.solo_texto = bool(texto) and not fuera_del_texto and not n.bonus_base
         n.puntuacion = round(score, 1)
         n.categorias = sorted(puntos_cat, key=puntos_cat.get, reverse=True)
-        n.categoria = n.categorias[0] if n.categorias else "Otros"
+        n.categoria = n.categorias[0] if n.categorias else ("Otros" if not n.bonus_base else "Transporte (BOE)")
         n.senales = senales[:6]
-        n.fechas_clave = extrae_fechas(f"{n.titulo}. {n.resumen}", n.fecha_pub)
-        if score >= self.umbral_alta or (score >= self.umbral and n.fechas_clave and senales):
+        n.fechas_clave = extrae_fechas(f"{n.titulo}. {n.resumen}. {n.texto}", n.fecha_pub)
+        # entrada en vigor diferida declarada por el propio BOE
+        if n.vigencia and n.fecha_pub:
+            diferida = date.fromisoformat(n.vigencia) - date.fromisoformat(n.fecha_pub)
+            if diferida.days > self.dias_vigencia_diferida and n.vigencia >= hoy().isoformat():
+                n.fechas_clave = [f for f in n.fechas_clave if f["fecha"] != n.vigencia]
+                n.fechas_clave.insert(0, {"fecha": n.vigencia, "contexto": "Entrada en vigor según el BOE"})
+                n.fechas_clave = n.fechas_clave[:4]
+        if n.solo_texto:  # sin nada en el título ni etiqueta oficial: como mucho prioridad media
+            n.prioridad = "media" if score >= self.umbral_solo_texto or not n.filtrar else "baja"
+        elif score >= self.umbral_alta or (score >= self.umbral and n.fechas_clave and senales):
             n.prioridad = "alta"
         elif score >= self.umbral:
             n.prioridad = "media"
@@ -343,7 +583,9 @@ class Clasificador:
         return n
 
     def es_relevante(self, n: Noticia) -> bool:
-        return (not n.filtrar) or n.puntuacion >= self.umbral
+        if not n.filtrar:
+            return True
+        return n.puntuacion >= (self.umbral_solo_texto if n.solo_texto else self.umbral)
 
 
 def extrae_fechas(texto: str, fecha_pub: str | None) -> list[dict]:
@@ -388,7 +630,14 @@ CREATE TABLE IF NOT EXISTS estado_fuentes (
     relevantes INTEGER, error TEXT, segundos REAL
 );
 CREATE INDEX IF NOT EXISTS ix_fecha ON noticias(fecha_pub);
+CREATE TABLE IF NOT EXISTS consolidada (
+    id TEXT PRIMARY KEY, titulo TEXT, rango TEXT, departamento TEXT,
+    fecha_actualizacion TEXT, url TEXT, cambios TEXT, clave TEXT, derogada INTEGER,
+    primera_vez TEXT, ultima_vez TEXT, ejecucion_cambio INTEGER
+);
 """
+# columnas añadidas después de la primera versión (migración automática de bases existentes)
+COLUMNAS_NUEVAS = {"materias": "TEXT", "modifica": "TEXT", "vigencia": "TEXT", "rango": "TEXT"}
 
 
 class Almacen:
@@ -397,6 +646,11 @@ class Almacen:
         self.db = sqlite3.connect(ruta)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(ESQUEMA)
+        existentes = {r["name"] for r in self.db.execute("PRAGMA table_info(noticias)")}
+        for col, tipo in COLUMNAS_NUEVAS.items():
+            if col not in existentes:
+                self.db.execute(f"ALTER TABLE noticias ADD COLUMN {col} {tipo}")
+        self.db.commit()
 
     def nueva_ejecucion(self) -> int:
         cur = self.db.execute("INSERT INTO ejecuciones(inicio) VALUES (?)", (datetime.now().isoformat(timespec="seconds"),))
@@ -422,15 +676,19 @@ class Almacen:
         valores = (n.fuente_id, n.fuente, n.tipo_fuente, n.titulo, n.url, n.resumen, n.fecha_pub,
                    n.categoria, json.dumps(n.categorias, ensure_ascii=False),
                    json.dumps(n.senales, ensure_ascii=False), json.dumps(n.fechas_clave, ensure_ascii=False),
-                   n.puntuacion, n.prioridad)
+                   n.puntuacion, n.prioridad,
+                   json.dumps(n.materias, ensure_ascii=False), json.dumps(n.modifica, ensure_ascii=False),
+                   n.vigencia, n.rango)
         if existe:
             self.db.execute("""UPDATE noticias SET fuente_id=?, fuente=?, tipo_fuente=?, titulo=?, url=?, resumen=?,
                 fecha_pub=COALESCE(?, fecha_pub), categoria=?, categorias=?, senales=?, fechas_clave=?,
-                puntuacion=?, prioridad=?, ultima_vez=? WHERE uid=?""", valores + (ahora, n.uid))
+                puntuacion=?, prioridad=?, materias=?, modifica=?, vigencia=?, rango=?, ultima_vez=?
+                WHERE uid=?""", valores + (ahora, n.uid))
             return False
         self.db.execute("""INSERT INTO noticias(fuente_id, fuente, tipo_fuente, titulo, url, resumen, fecha_pub,
-            categoria, categorias, senales, fechas_clave, puntuacion, prioridad, uid, primera_vez, ultima_vez, ejecucion_alta)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", valores + (n.uid, ahora, ahora, ej))
+            categoria, categorias, senales, fechas_clave, puntuacion, prioridad, materias, modifica, vigencia, rango,
+            uid, primera_vez, ultima_vez, ejecucion_alta)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", valores + (n.uid, ahora, ahora, ej))
         return True
 
     def estado_fuente(self, ej, fuente_id, fuente, ok, recibidas, relevantes, error, seg):
@@ -448,8 +706,50 @@ class Almacen:
         out = []
         for r in rows:
             d = dict(r)
-            for k in ("categorias", "senales", "fechas_clave"):
-                d[k] = json.loads(d[k] or "[]")
+            for k in ("categorias", "senales", "fechas_clave", "materias", "modifica"):
+                d[k] = json.loads(d.get(k) or "[]")
+            out.append(d)
+        return out
+
+    # --- legislación consolidada ---
+    def consolidada_ultima_revision(self) -> date | None:
+        row = self.db.execute("SELECT MAX(ultima_vez) AS f FROM consolidada").fetchone()
+        return datetime.fromisoformat(row["f"]).date() if row and row["f"] else None
+
+    def consolidada_fecha(self, id_: str) -> str | None:
+        row = self.db.execute("SELECT fecha_actualizacion FROM consolidada WHERE id=?", (id_,)).fetchone()
+        return row["fecha_actualizacion"] if row else None
+
+    def consolidada_toca(self, id_: str, clave: str | None):
+        self.db.execute("UPDATE consolidada SET ultima_vez=?, clave=COALESCE(?, clave) WHERE id=?",
+                        (datetime.now().isoformat(timespec="seconds"), clave, id_))
+
+    def consolidada_guarda(self, d: dict, ej: int) -> bool:
+        """Inserta o actualiza una norma consolidada. True si es nueva o ha cambiado su fecha de actualización."""
+        ahora = datetime.now().isoformat(timespec="seconds")
+        previa = self.consolidada_fecha(d["id"])
+        if previa == d["fecha_actualizacion"]:
+            self.consolidada_toca(d["id"], d.get("clave"))
+            return False
+        self.db.execute("""INSERT INTO consolidada(id, titulo, rango, departamento, fecha_actualizacion, url, cambios,
+                clave, derogada, primera_vez, ultima_vez, ejecucion_cambio) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET titulo=excluded.titulo, rango=excluded.rango,
+                departamento=excluded.departamento, fecha_actualizacion=excluded.fecha_actualizacion,
+                url=excluded.url, cambios=excluded.cambios, clave=COALESCE(excluded.clave, clave),
+                derogada=excluded.derogada, ultima_vez=excluded.ultima_vez, ejecucion_cambio=excluded.ejecucion_cambio""",
+                        (d["id"], d["titulo"], d["rango"], d["departamento"], d["fecha_actualizacion"], d["url"],
+                         json.dumps(d["cambios"], ensure_ascii=False), d.get("clave"), int(d["derogada"]),
+                         ahora, ahora, ej))
+        return True
+
+    def consolidada_html(self, dias: int) -> list[dict]:
+        limite = (hoy() - timedelta(days=dias)).isoformat()
+        rows = self.db.execute("""SELECT * FROM consolidada WHERE fecha_actualizacion >= ? OR clave IS NOT NULL
+            ORDER BY fecha_actualizacion DESC""", (limite,)).fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["cambios"] = json.loads(d["cambios"] or "[]")
             out.append(d)
         return out
 
@@ -488,6 +788,10 @@ def genera_html(almacen: Almacen, cfg: dict, plazos: list[dict], salida: Path):
                 if n["prioridad"] in ("alta", "media")]
     for n in noticias:
         n["nuevo"] = (ej is not None and n["ejecucion_alta"] == ej)
+    consolidada = almacen.consolidada_html(int(cfg.get("consolidada", {}).get("dias_html", 90)))
+    primera = min((c["ejecucion_cambio"] for c in consolidada if c["ejecucion_cambio"]), default=None)
+    for c in consolidada:  # en la primera revisión no se marca todo como nuevo
+        c["nuevo"] = ej is not None and c["ejecucion_cambio"] == ej and ej != primera
     datos = {
         "generado": datetime.now().isoformat(timespec="minutes"),
         "hoy": hoy().isoformat(),
@@ -496,6 +800,7 @@ def genera_html(almacen: Almacen, cfg: dict, plazos: list[dict], salida: Path):
         "noticias": noticias,
         "plazos": plazos,
         "fuentes": estado,
+        "consolidada": consolidada,
     }
     js = json.dumps(datos, ensure_ascii=False).replace("</", "<\\/")
     html = plantilla.replace("/*__DATOS__*/null", js)
@@ -552,6 +857,21 @@ def ejecuta(args) -> int:
         except Exception as e:  # una fuente caída no tumba el resto
             almacen.estado_fuente(ej, fid, nombre, False, 0, 0, f"{type(e).__name__}: {e}"[:300], time.time() - t0)
             log.warning("%-28s ERROR %s", nombre, e)
+        almacen.commit()
+
+    cons_cfg = cfg.get("consolidada", {})
+    if cons_cfg.get("activo", False):
+        t0 = time.time()
+        try:
+            revisadas, cambiadas = recoge_consolidada(http, cons_cfg, almacen, ej)
+            almacen.estado_fuente(ej, "boe_consolidada", "BOE · Legislación consolidada", True,
+                                  revisadas, cambiadas, None, time.time() - t0)
+            log.info("%-28s OK  %4d revisadas · %3d actualizadas", "BOE · Legislación consolidada",
+                     revisadas, cambiadas)
+        except Exception as e:
+            almacen.estado_fuente(ej, "boe_consolidada", "BOE · Legislación consolidada", False, 0, 0,
+                                  f"{type(e).__name__}: {e}"[:300], time.time() - t0)
+            log.warning("%-28s ERROR %s", "BOE · Legislación consolidada", e)
         almacen.commit()
 
     almacen.cierra_ejecucion(ej, len(nuevas))
